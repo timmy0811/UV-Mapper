@@ -23,6 +23,12 @@ inline void LOGC(const std::string& msg, LOG_COLOR color = LOG_COLOR::LOG) {
 	SetConsoleTextAttribute(hConsole, 15);
 }
 
+namespace Configuration::Global {
+	inline int TEXTURE_BINDING = 0;
+
+	inline const int SAMPLER_SLOT_SPRITES = 1;
+	inline const int SAMPLER_SLOT_FONTS = 2;
+}
 
 class Config {
 private:

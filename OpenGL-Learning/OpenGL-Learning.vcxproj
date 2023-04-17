@@ -140,6 +140,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\mapper\core\Mapper.cpp" />
     <ClCompile Include="src\config.cpp" />
     <ClCompile Include="src\OpenGL_util\model\Model3D.cpp" />
     <ClCompile Include="src\OpenGL_util\model\Mesh.cpp" />
@@ -300,7 +301,11 @@
     <None Include="src\vendor\glm\gtx\wrap.inl" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\mapper\core\Mapper.h" />
     <ClInclude Include="src\config.h" />
+    <ClInclude Include="src\mapper\helper\CustomRenderer.h" />
+    <ClInclude Include="src\mapper\helper\Helper.h" />
+    <ClInclude Include="src\mapper\helper\Primitive.h" />
     <ClInclude Include="src\OpenGL_util\misc\Light.hpp" />
     <ClInclude Include="src\OpenGL_util\misc\Material.hpp" />
     <ClInclude Include="src\OpenGL_util\misc\Vertex.hpp" />

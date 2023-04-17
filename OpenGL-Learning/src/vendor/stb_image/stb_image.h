@@ -322,7 +322,7 @@ RECENT REVISION HISTORY:
 //
 // ===========================================================================
 //
-// ADDITIONAL CONFIGURATION
+// ADDITIONAL 
 //
 //  - You can suppress implementation of any of the decoders to reduce
 //    your code footprint by #defining one or more of the following

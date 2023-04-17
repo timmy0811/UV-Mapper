@@ -13,5 +13,6 @@ public:
     static void Clear();
     static void Draw(const VertexArray& va, const IndexBuffer& ib, const Shader& shader, int mode = GL_TRIANGLES, int count = -1);
     static void Draw(const VertexArray& va, const IndexBuffer& ib, const Shader& shader, size_t count);
+    static void DrawInstanced(const VertexArray& va, const IndexBuffer& ib, const Shader& shader, size_t count, size_t instances);
     static void DrawArray(const VertexArray& va, const Shader& shader, size_t first, size_t count);
 };

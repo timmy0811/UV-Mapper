@@ -9,6 +9,8 @@
 #include <string>
 #include <sstream>
 
+#include "mapper/core/Mapper.h"
+
 #include "OpenGL_util/core/Renderer.h"
 
 #include "glm/glm.hpp"
@@ -67,8 +69,8 @@ int main(void)
     ImGui_ImplOpenGL3_Init();
 
     // Game
-    // Handler GameHandler = Handler(window);
-
+    Mapper UvMapper = Mapper();
+        
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
@@ -78,15 +80,13 @@ int main(void)
 
         ImGuiNewFrame();
 
-        ImGui::Begin("Test Window");
+        /*ImGui::Begin("Test Window");
         ImGui::Text("Press this Button :)");
         if (ImGui::Button("Button")) LOGC("Button Press!", LOG_COLOR::SPECIAL_A);
-        ImGui::End();
+        ImGui::End();*/
 
         //Game
-        /*GameHandler.OnInput(window);
-        GameHandler.OnUpdate();
-        GameHandler.OnRender();*/
+        UvMapper.OnRender();
 
         ImGuiRender(io);
 
