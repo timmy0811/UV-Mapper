@@ -19,8 +19,8 @@ namespace Helper {
 	};
 
 	struct LineVertex {
-		glm::vec3 Position;
-		glm::vec3 Color;
+		glm::vec2 Position;
+		glm::vec4 Color;
 	};
 
 	struct PositionVertex {

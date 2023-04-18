@@ -24,7 +24,7 @@
     <ProjectGuid>{3c341fd2-b706-4ea7-ab9f-ea47a963b1e6}</ProjectGuid>
     <RootNamespace>OpenGLLearning</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>Template</ProjectName>
+    <ProjectName>UVMapper</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

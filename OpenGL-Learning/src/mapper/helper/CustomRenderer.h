@@ -35,6 +35,7 @@ namespace Helper {
 
 		LineRenderer(int count, const std::string& shaderVert, const std::string& shaderFrag)
 			: shader(new Shader(shaderVert, shaderFrag)) {
+			count *= 2.f;
 			unsigned int* indices = new unsigned int[count];
 
 			for (int i = 0; i < count; i++) {
@@ -42,22 +43,34 @@ namespace Helper {
 			}
 
 			ib = std::make_unique<IndexBuffer>(indices, count);
-			vb = std::make_unique<VertexBuffer>(count, sizeof(PositionVertex));
+			vb = std::make_unique<VertexBuffer>(count, sizeof(LineVertex));
 
 			delete[] indices;
 
 			vbLayout = std::make_unique<VertexBufferLayout>();
-			vbLayout->Push<float>(3);	// Position
+			vbLayout->Push<float>(2);	// Position
+			vbLayout->Push<float>(4);	// Color
 
 			va = std::make_unique<VertexArray>();
 			va->AddBuffer(*vb, *vbLayout);
 
 			shader->Bind();
-			shader->SetUniform4f("u_Color", 1.f, 0.f, 0.f, 1.f);
 		}
 
 		~LineRenderer() {
 			delete shader;
+		}
+
+		void AddLine(const glm::vec2& posA, const glm::vec2& posB, const glm::vec4& color) {
+			LineVertex v[2];
+			
+			v[0].Position = posA;
+			v[1].Position = posB;
+
+			v[0].Color = color;
+			v[1].Color = color;
+
+			vb->AddVertexData(v, 2 * sizeof(LineVertex));
 		}
 
 		inline void Draw() {
@@ -151,7 +164,7 @@ namespace Helper {
 		inline void Draw() {
 			if (!doDraw) return;
 
-			GLCall(glLineWidth(3));
+			GLCall(glLineWidth(2));
 			shader->Bind();
 			va->Bind();
 			ib->Bind();
@@ -211,6 +224,13 @@ namespace Helper {
 			va = std::make_unique<VertexArray>();
 			va->AddBuffer(*vb, *vbLayout);
 
+			shader->Bind();
+			
+			shader->SetUniformMat4f("u_MVP", projection * view * glm::translate(glm::mat4(1.f), translation));
+		}
+
+		void SetTranslation(const glm::vec3& translation){
+			this->translation = translation;
 			shader->Bind();
 			shader->SetUniformMat4f("u_MVP", projection * view * glm::translate(glm::mat4(1.f), translation));
 		}
@@ -387,7 +407,7 @@ namespace Helper {
 
 	public:
 		explicit FontRenderer(const std::string& imgPath, const std::string& fontPath, int capacity, const bool unicode = false, unsigned int sheetId = 0)
-			:fontSheet(imgPath, true), shader(new Shader("res/shaders/font/shader_font_stylized.vert", "res/shaders/font/shader_font_stylized.frag"))
+			:fontSheet(imgPath, true), shader(new Shader("res/shader/font/shader_font_stylized.vert", "res/shader/font/shader_font_stylized.frag"))
 		{
 			projection = glm::ortho(0.0f, (float)conf.WIN_WIDTH, 0.0f, (float)conf.WIN_HEIGHT, -1.0f, 1.0f);
 			translation = glm::vec3(0.f, 0.f, 0.f);
@@ -450,6 +470,12 @@ namespace Helper {
 
 		~FontRenderer() {
 			delete shader;
+		}
+
+		void SetTranslation(const glm::vec3& translation) {
+			this->translation = translation;
+			shader->Bind();
+			shader->SetUniformMat4f("u_MVP", projection * view * glm::translate(glm::mat4(1.f), translation));
 		}
 
 		void ParseSymbols(const std::string& fontPath, const bool unicode = false) {

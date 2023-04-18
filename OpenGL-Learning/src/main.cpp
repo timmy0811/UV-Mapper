@@ -36,7 +36,7 @@ int main(void)
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(conf.WIN_WIDTH, conf.WIN_HEIGHT, "Mineclone", NULL, NULL);
+    window = glfwCreateWindow(conf.WIN_WIDTH, conf.WIN_HEIGHT, "UV-Mapper", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -86,6 +86,8 @@ int main(void)
         ImGui::End();*/
 
         //Game
+        UvMapper.OnInput(window);
+        UvMapper.OnUpdate();
         UvMapper.OnRender();
 
         ImGuiRender(io);
