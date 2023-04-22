@@ -27,7 +27,7 @@ namespace Configuration::Global {
 	inline int TEXTURE_BINDING = 0;
 
 	inline const int SAMPLER_SLOT_SPRITES = 1;
-	inline const int SAMPLER_SLOT_FONTS = 2;
+	inline const int SAMPLER_SLOT_FONTS = 8;
 }
 
 class Config {

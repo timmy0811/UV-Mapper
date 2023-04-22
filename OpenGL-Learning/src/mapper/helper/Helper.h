@@ -1,6 +1,7 @@
 #pragma once
 
 #include "OpenGL_util/core/Shader.h"
+#include "vendor/stb_image/stb_image.h"
 
 namespace Helper {
 	// Structs
@@ -22,6 +23,12 @@ namespace Helper {
 		~ShaderPackage() {
 			delete shaderBlockStatic;
 		}
+	};
+
+	struct ImageInformation {
+		glm::ivec2 Size;
+		std::string Path;
+		int BitDepth;
 	};
 
 	struct Sprite {
@@ -54,7 +61,23 @@ namespace Helper {
 		glm::vec2 Size;
 		Helper::Vec2_4 Uvs;
 
+		ImageInformation Information;
+
 		bool FlipUvs;
+
+		/// <summary>
+		/// Loads image into memory and retrieves its (meta)data.
+		/// </summary>
+		/// <returns>ImageInformation struct</returns>
+		ImageInformation getImageInformation() {
+			if (Information.Path.size() == 0) {
+				Information.Path = Path;
+				unsigned char* buffer = stbi_load(Path.c_str(), &Information.Size.x, &Information.Size.y, &Information.BitDepth, 4);
+				if (buffer) stbi_image_free(buffer);
+			}
+
+			return Information;
+		}
 	};
 
 	// Functions

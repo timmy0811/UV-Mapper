@@ -89,6 +89,7 @@ int main(void)
         UvMapper.OnInput(window);
         UvMapper.OnUpdate();
         UvMapper.OnRender();
+        UvMapper.OnGuiRender();
 
         ImGuiRender(io);
 

@@ -229,10 +229,10 @@ namespace Helper {
 			shader->SetUniformMat4f("u_MVP", projection * view * glm::translate(glm::mat4(1.f), translation));
 		}
 
-		void SetTranslation(const glm::vec3& translation){
+		void SetTranslation(const glm::vec3& translation, const glm::vec3& scale = {1.f, 1.f, 1.f}) {
 			this->translation = translation;
 			shader->Bind();
-			shader->SetUniformMat4f("u_MVP", projection * view * glm::translate(glm::mat4(1.f), translation));
+			shader->SetUniformMat4f("u_MVP", projection * view * glm::scale(glm::mat4(1.f), scale) * glm::translate(glm::mat4(1.f), translation));
 		}
 
 		void RefreshTextures() {
@@ -344,6 +344,7 @@ namespace Helper {
 		}
 
 		inline Shader* getShaderPtr() { return shader; }
+		inline size_t getCount() { return textures.size(); }
 	};
 
 	class FontRenderer {
@@ -472,10 +473,10 @@ namespace Helper {
 			delete shader;
 		}
 
-		void SetTranslation(const glm::vec3& translation) {
+		void SetTranslation(const glm::vec3& translation, const glm::vec3& scale = {1.f, 1.f, 1.f}) {
 			this->translation = translation;
 			shader->Bind();
-			shader->SetUniformMat4f("u_MVP", projection * view * glm::translate(glm::mat4(1.f), translation));
+			shader->SetUniformMat4f("u_MVP", projection * view * glm::scale(glm::mat4(1.f), scale) * glm::translate(glm::mat4(1.f), translation));
 		}
 
 		void ParseSymbols(const std::string& fontPath, const bool unicode = false) {
