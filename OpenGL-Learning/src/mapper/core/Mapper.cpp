@@ -11,8 +11,8 @@ Mapper::Mapper()
 	m_BackgroundRenderer.AddSprite("res/background.png", { -DIST_TO_CANVAS - BG_TILE_WIDTH, conf.WIN_HEIGHT + DIST_TO_CANVAS - BG_TILE_WIDTH }, { BG_TILE_WIDTH, BG_TILE_WIDTH });
 	m_BackgroundRenderer.getShaderPtr()->SetUniform1f("u_TileWidth", BG_TILE_WIDTH);
 	
-	m_LineRenderer.AddLine({-1000.f, conf.WIN_HEIGHT - CENTER * BG_TILE_WIDTH}, {3000.f, conf.WIN_HEIGHT - CENTER * BG_TILE_WIDTH }, {1.f, 0.f, 0.f, 1.f});
-	m_LineRenderer.AddLine({ CENTER * BG_TILE_WIDTH, -1000.f}, { CENTER * BG_TILE_WIDTH, 3000.f }, { 0.f, 0.f, 1.f, 1.f });
+	m_LineRenderer.AddLine({-1000.f, conf.WIN_HEIGHT - CENTER * BG_TILE_WIDTH}, {10000.f, conf.WIN_HEIGHT - CENTER * BG_TILE_WIDTH }, {1.f, 0.f, 0.f, 1.f});
+	m_LineRenderer.AddLine({ CENTER * BG_TILE_WIDTH, -10000.f}, { CENTER * BG_TILE_WIDTH, 3000.f }, { 0.f, 0.f, 1.f, 1.f });
 
 	m_FontRenderer.PrintMultilineText("(0.0, 0.0)", { CENTER * BG_TILE_WIDTH + 15.f, conf.WIN_HEIGHT - CENTER * BG_TILE_WIDTH + FONT_SIZE * 12.f }, FONT_SIZE, { 0.15, 0.15, 0.15, 0.5f });
 	m_Zoom = 1.f;
@@ -27,7 +27,7 @@ void Mapper::OnUpdate()
 	static float zoom = 0.5f;
 	zoom += 0.1f * (1.f / 60.f);
 	m_LineRenderer.shader->SetUniformMat4f("u_MVP", m_Projection * glm::scale(glm::mat4(1.f), glm::vec3(m_Zoom)) * glm::translate(glm::mat4(1.f), glm::vec3(m_ViewOffset, 0.f)));
-	m_BackgroundRenderer.SetTranslation({ m_ViewOffset.x, m_ViewOffset.y, 0.f }, glm::vec3(m_Zoom));
+	//m_BackgroundRenderer.SetTranslation({ m_ViewOffset.x, m_ViewOffset.y, 0.f }, glm::vec3(m_Zoom));		// Background transforming?
 	m_FontRenderer.SetTranslation({ m_ViewOffset.x, m_ViewOffset.y, 0.f }, glm::vec3(m_Zoom));
 	m_ImageRenderer.SetTranslation({ m_ViewOffset.x, m_ViewOffset.y, 0.f }, glm::vec3(m_Zoom));
 }
@@ -53,12 +53,12 @@ void Mapper::OnGuiRender()
 		ImGui::PushStyleColor(ImGuiCol_TitleBg, { 0.8f, 0.1f, 0.1f, 1.f });
 		ImGui::PushStyleColor(ImGuiCol_TitleBgActive, {0.9f, 0.2f, 0.2f, 1.f});
 
-		float w = 450.f, h = 80.f;
+		float w = 450.f, h = 100.f;
 		ImGui::SetNextWindowSize({ w, h });
 		ImGui::SetNextWindowPos({ (float)conf.WIN_WIDTH / 2.f - w / 2.f, (float)conf.WIN_HEIGHT / 2.f - h / 2.f });
 
 		ImGui::Begin("Load an image!");
-		ImGui::Text("Please load an Image (jpg,png,bmp,tga,hdr) to continue.");
+		ImGui::Text("Load an Image (jpg,png,bmp,tga,hdr) to continue.\nmax resolution: 7.680 x 7.680");
 		if (ImGui::Button("Select and Load")) {
 			nfdchar_t* outPath = NULL;
 			nfdresult_t result = NFD_OpenDialog("jpg,png,bmp,tga,hdr", NULL, &outPath);
@@ -84,7 +84,6 @@ void Mapper::OnGuiRender()
 		ImGui::SetNextWindowPos({ (float)conf.WIN_WIDTH - (float)conf.WIN_WIDTH / 3.5f, 0.f });
 
 		ImGui::Begin("Attributes");
-
 
 		ImGui::End();
 	}
@@ -127,8 +126,10 @@ void Mapper::ProcessMouse(GLFWwindow* window)
 		m_InTranslationMode = false;
 	}
 
-	float x = xoffset * (1.f / m_Zoom);
-	float y = yoffset * (1.f / m_Zoom);
+	float x = xoffset * (1.f / m_Zoom) * 0.75;
+	float y = yoffset * (1.f / m_Zoom) * 0.75;
+
+	LOGC((std::to_string(m_ViewOffset.y)), LOG_COLOR::SPECIAL_A);
 
 	if (m_InTranslationMode) {
 		if (m_ViewOffset.x + x < DIST_TO_CANVAS && m_ViewOffset.x + x > -m_DynamicViewBorder.x) {
@@ -141,14 +142,14 @@ void Mapper::ProcessMouse(GLFWwindow* window)
 			m_ViewOffset.x += -m_DynamicViewBorder.x - m_ViewOffset.x;
 		}
 
-		if (m_ViewOffset.y + y > -DIST_TO_CANVAS && m_ViewOffset.y + y <= m_DynamicViewBorder.y) {
+		if (m_ViewOffset.y + y > -DIST_TO_CANVAS) {
 			m_ViewOffset.y += y;
 		}
 		else if (m_ViewOffset.y + y <= DIST_TO_CANVAS) {
 			m_ViewOffset.y += -DIST_TO_CANVAS - m_ViewOffset.y;
 		}
 		else {
-			m_ViewOffset.y += m_DynamicViewBorder.y - m_ViewOffset.y;
+			//m_ViewOffset.y += m_DynamicViewBorder.y - m_ViewOffset.y;
 		}
 	}
 }
@@ -174,11 +175,15 @@ void Mapper::loadImage(const std::string& path)
 	m_OperationImage = Helper::Sprite(path, { 0.f, 0.f }, { 0.f, 0.f });
 	Helper::ImageInformation information = m_OperationImage.getImageInformation();
 
-	m_OperationImage.Size.x = information.Size.x;
-	m_OperationImage.Size.y = information.Size.y;
+	if (information.Size.x <= 7680 && information.Size.y <= 7680) {
+		m_OperationImage.Size.x = information.Size.x;
+		m_OperationImage.Size.y = information.Size.y;
 
-	m_OperationImage.Position.x = CENTER * BG_TILE_WIDTH;
-	m_OperationImage.Position.y = conf.WIN_HEIGHT - BG_TILE_WIDTH * CENTER - information.Size.y;
+		m_OperationImage.Position.x = CENTER * BG_TILE_WIDTH;
+		m_OperationImage.Position.y = conf.WIN_HEIGHT - BG_TILE_WIDTH * CENTER - information.Size.y;
 
-	m_ImageRenderer.AddSprite(m_OperationImage);
+		m_ImageRenderer.AddSprite(m_OperationImage);
+
+		m_DynamicViewBorder = information.Size + glm::ivec2(100.f, 100.f);
+	}
 }

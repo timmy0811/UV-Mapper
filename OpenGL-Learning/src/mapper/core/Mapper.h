@@ -13,9 +13,9 @@
 
 #define BG_TILE_WIDTH 32.f
 #define FONT_SIZE 2.f
-#define DIST_TO_CANVAS 500.f
+#define DIST_TO_CANVAS 200.f
 #define CENTER 4.f
-#define ZOOM_SPEED 0.04f
+#define ZOOM_SPEED 0.055f
 
 class Mapper
 {

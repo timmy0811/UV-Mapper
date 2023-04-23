@@ -6,9 +6,9 @@ C:\Git\UV-Mapper\OpenGL-Learning\src\mapper\helper\CustomRenderer.h(38,13): warn
 C:\Git\UV-Mapper\OpenGL-Learning\src\mapper\helper\CustomRenderer.h(496,18): warning C4244: "Initialisierung": Konvertierung von "float" in "int", möglicher Datenverlust
 C:\Git\UV-Mapper\OpenGL-Learning\src\mapper\helper\CustomRenderer.h(593,1): warning C4267: "Argument": Konvertierung von "size_t" nach "int", Datenverlust möglich
 C:\Git\UV-Mapper\OpenGL-Learning\src\mapper\core\Mapper.cpp(39,15): warning C4244: "Initialisierung": Konvertierung von "float" in "size_t", möglicher Datenverlust
+C:\Git\UV-Mapper\OpenGL-Learning\src\mapper\core\Mapper.cpp(129,10): warning C4244: "Initialisierung": Konvertierung von "double" in "float", möglicher Datenverlust
 C:\Git\UV-Mapper\OpenGL-Learning\src\mapper\core\Mapper.cpp(130,10): warning C4244: "Initialisierung": Konvertierung von "double" in "float", möglicher Datenverlust
-C:\Git\UV-Mapper\OpenGL-Learning\src\mapper\core\Mapper.cpp(131,10): warning C4244: "Initialisierung": Konvertierung von "double" in "float", möglicher Datenverlust
-C:\Git\UV-Mapper\OpenGL-Learning\src\mapper\core\Mapper.cpp(177,44): warning C4244: "=": Konvertierung von "T" in "T", möglicher Datenverlust
+C:\Git\UV-Mapper\OpenGL-Learning\src\mapper\core\Mapper.cpp(179,45): warning C4244: "=": Konvertierung von "T" in "T", möglicher Datenverlust
           with
           [
               T=int
@@ -17,7 +17,7 @@ C:\Git\UV-Mapper\OpenGL-Learning\src\mapper\core\Mapper.cpp(177,44): warning C42
           [
               T=float
           ]
-C:\Git\UV-Mapper\OpenGL-Learning\src\mapper\core\Mapper.cpp(178,44): warning C4244: "=": Konvertierung von "T" in "T", möglicher Datenverlust
+C:\Git\UV-Mapper\OpenGL-Learning\src\mapper\core\Mapper.cpp(180,45): warning C4244: "=": Konvertierung von "T" in "T", möglicher Datenverlust
           with
           [
               T=int
