@@ -3,6 +3,8 @@
 Mapper::Mapper()
 	:m_BackgroundRenderer(1, "res/shader/sprite/shader_sprite_bg.vert", "res/shader/sprite/shader_sprite_bg.frag"),
 	m_LineRenderer(2, "res/shader/line/shader_single_color.vert", "res/shader/line/shader_single_color.frag"),
+	m_ImageBorderRenderer(6, "res/shader/line/shader_single_color.vert", "res/shader/line/shader_single_color.frag"),
+	m_GridRenderer(1, "res/shader/line/shader_single_color_instanced.vert", "res/shader/line/shader_single_color.frag"),
 	m_FontRenderer("res/ascii_gui_0.png", "res/font.yaml", 128, false),
 	m_ImageRenderer(1, "res/shader/sprite/shader_sprite.vert", "res/shader/sprite/shader_sprite.frag")
 {
@@ -10,12 +12,13 @@ Mapper::Mapper()
 
 	m_BackgroundRenderer.AddSprite("res/background.png", { -DIST_TO_CANVAS - BG_TILE_WIDTH, conf.WIN_HEIGHT + DIST_TO_CANVAS - BG_TILE_WIDTH }, { BG_TILE_WIDTH, BG_TILE_WIDTH });
 	m_BackgroundRenderer.getShaderPtr()->SetUniform1f("u_TileWidth", BG_TILE_WIDTH);
-	
-	m_LineRenderer.AddLine({-1000.f, CENTER * BG_TILE_WIDTH}, {10000.f, CENTER * BG_TILE_WIDTH }, {1.f, 0.f, 0.f, 1.f});
-	m_LineRenderer.AddLine({ CENTER * BG_TILE_WIDTH, -1000.f}, { CENTER * BG_TILE_WIDTH, 10000.f }, { 0.f, 0.f, 1.f, 1.f });
+
+	addGuideLines();
 
 	m_FontRenderer.PrintMultilineText("(0.0, 0.0)", { CENTER * BG_TILE_WIDTH + 15.f, conf.WIN_HEIGHT - CENTER * BG_TILE_WIDTH + FONT_SIZE * 12.f }, FONT_SIZE, { 0.15, 0.15, 0.15, 0.5f });
 	m_Zoom = 1.f;
+
+	m_GridRenderer.AddLine({ CENTER * BG_TILE_WIDTH , CENTER * BG_TILE_WIDTH + 100.f }, { CENTER * BG_TILE_WIDTH + 700, CENTER * BG_TILE_WIDTH + 100.f }, { 0.f, 1.f, 0.f, 1.0f });
 }
 
 Mapper::~Mapper()
@@ -26,7 +29,14 @@ void Mapper::OnUpdate()
 {
 	static float zoom = 0.5f;
 	zoom += 0.1f * (1.f / 60.f);
+	m_LineRenderer.shader->Bind();
 	m_LineRenderer.shader->SetUniformMat4f("u_MVP", m_Projection * glm::scale(glm::mat4(1.f), glm::vec3(m_Zoom)) * glm::translate(glm::mat4(1.f), glm::vec3(m_ViewOffset, 0.f)));
+	m_ImageBorderRenderer.shader->Bind();
+	m_ImageBorderRenderer.shader->SetUniformMat4f("u_MVP", m_Projection * glm::scale(glm::mat4(1.f), glm::vec3(m_Zoom)) * glm::translate(glm::mat4(1.f), glm::vec3(m_ViewOffset, 0.f)));
+	m_GridRenderer.shader->Bind();
+	m_GridRenderer.shader->SetUniform1f("u_TexelWidth", 10.f);
+	m_GridRenderer.shader->SetUniformMat4f("u_MVP", m_Projection * glm::scale(glm::mat4(1.f), glm::vec3(m_Zoom)) * glm::translate(glm::mat4(1.f), glm::vec3(m_ViewOffset, 0.f)));
+
 	//m_BackgroundRenderer.SetTranslation({ m_ViewOffset.x, m_ViewOffset.y, 0.f }, glm::vec3(m_Zoom));		// Background transforming?
 	m_FontRenderer.SetTranslation({ m_ViewOffset.x, m_ViewOffset.y, 0.f }, glm::vec3(m_Zoom));
 	m_ImageRenderer.SetTranslation({ m_ViewOffset.x, m_ViewOffset.y, 0.f }, glm::vec3(m_Zoom));
@@ -44,7 +54,9 @@ void Mapper::OnRender()
 	m_BackgroundRenderer.DrawInstanced(count);
 	m_FontRenderer.Draw();
 	m_ImageRenderer.Draw();
-	m_LineRenderer.Draw();
+	m_GridRenderer.DrawInstanced(20);
+	m_LineRenderer.Draw(3.f);
+	m_ImageBorderRenderer.Draw();
 }
 
 void Mapper::OnGuiRender()
@@ -129,8 +141,6 @@ void Mapper::ProcessMouse(GLFWwindow* window)
 	float x = xoffset * (1.f / m_Zoom) * 0.75;
 	float y = yoffset * (1.f / m_Zoom) * 0.75;
 
-	LOGC((std::to_string(m_ViewOffset.y)), LOG_COLOR::SPECIAL_A);
-
 	if (m_InTranslationMode) {
 		if (m_ViewOffset.x + x < DIST_TO_CANVAS && m_ViewOffset.x + x > -m_DynamicViewBorder.x) {
 			m_ViewOffset.x += x;
@@ -185,5 +195,18 @@ void Mapper::loadImage(const std::string& path)
 		m_ImageRenderer.AddSprite(m_OperationImage);
 
 		m_DynamicViewBorder = information.Size + glm::ivec2(100.f, 100.f);
+
+		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH }, { CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH + information.Size.y }, { 1.f, 1.f, 1.f, 1.f });
+		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH + information.Size.y }, { CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH + information.Size.y }, { 1.f, 1.f, 1.f, 1.f });
+
+		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH }, { CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH }, { 1.f, 1.f, 1.f, 1.f });
+		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH }, { CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH + information.Size.y }, { 1.f, 1.f, 1.f, 1.f });
+
 	}
+}
+
+void Mapper::addGuideLines()
+{
+	m_LineRenderer.AddLine({ -1000.f, CENTER * BG_TILE_WIDTH }, { 10000.f, CENTER * BG_TILE_WIDTH }, { 1.f, 0.1f, 0.1f, 1.f });
+	m_LineRenderer.AddLine({ CENTER * BG_TILE_WIDTH, -1000.f }, { CENTER * BG_TILE_WIDTH, 10000.f }, { 0.2f, 0.2f, 1.f, 1.f });
 }

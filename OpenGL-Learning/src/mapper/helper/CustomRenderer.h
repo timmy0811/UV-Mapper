@@ -70,15 +70,24 @@ namespace Helper {
 			v[0].Color = color;
 			v[1].Color = color;
 
+			
 			vb->AddVertexData(v, 2 * sizeof(LineVertex));
 		}
 
-		inline void Draw() {
-			GLCall(glLineWidth(3));
+		inline void Draw(const float strokeWidth = 1.f) {
+			GLCall(glLineWidth(strokeWidth));
 			shader->Bind();
 			va->Bind();
 			ib->Bind();
 			Renderer::Draw(*va, *ib, *shader, GL_LINES);
+		}
+
+		inline void DrawInstanced(const size_t count, const float strokeWidth = 1.f) {
+			GLCall(glLineWidth(strokeWidth));
+			shader->Bind();
+			va->Bind();
+			ib->Bind();
+			Renderer::DrawInstanced(*va, *ib, *shader, ib->GetCount(), count);
 		}
 	};
 

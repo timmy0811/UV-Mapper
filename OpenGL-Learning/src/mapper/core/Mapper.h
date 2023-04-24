@@ -21,6 +21,9 @@ class Mapper
 {
 private:
 	Helper::LineRenderer m_LineRenderer;
+	Helper::LineRenderer m_ImageBorderRenderer;
+	Helper::LineRenderer m_GridRenderer;
+
 	Helper::SpriteRenderer m_BackgroundRenderer;
 	Helper::FontRenderer m_FontRenderer;
 
@@ -47,6 +50,7 @@ private:
 	static void OnScrollCallback(GLFWwindow* window, double xpos, double ypos);
 
 	void loadImage(const std::string& path);
+	void addGuideLines();
 
 public:
 	explicit Mapper();

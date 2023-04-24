@@ -31,6 +31,14 @@ void Renderer::DrawInstanced(const VertexArray& va, const IndexBuffer& ib, const
     GLCall(glDrawElementsInstanced(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr, instances));
 }
 
+void Renderer::DrawInstancedLines(const VertexArray& va, const IndexBuffer& ib, const Shader& shader, size_t count, size_t instances)
+{
+    shader.Bind();
+    va.Bind();
+    ib.Bind();
+    GLCall(glDrawElementsInstanced(GL_LINES, count, GL_UNSIGNED_INT, nullptr, instances));
+}
+
 void Renderer::DrawArray(const VertexArray& va, const Shader& shader, size_t first, size_t count)
 {
     shader.Bind();
