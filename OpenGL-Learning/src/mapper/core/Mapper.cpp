@@ -202,6 +202,8 @@ void Mapper::loadImage(const std::string& path)
 		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH }, { CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH }, { 1.f, 1.f, 1.f, 1.f });
 		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH }, { CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH + information.Size.y }, { 1.f, 1.f, 1.f, 1.f });
 
+		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH + information.Size.x - 10.f, CENTER * BG_TILE_WIDTH + information.Size.y }, { CENTER * BG_TILE_WIDTH + information.Size.x + 10.f, CENTER * BG_TILE_WIDTH + information.Size.y }, { 0.f, 0.9f, 1.f, 0.7f });
+		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH + information.Size.y - 10.f }, { CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH + information.Size.y + 10.f }, { 1.f, 0.0f, 0.8f, 0.7f });
 	}
 }
 
