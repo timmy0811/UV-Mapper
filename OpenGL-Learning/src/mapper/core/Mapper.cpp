@@ -11,8 +11,8 @@ Mapper::Mapper()
 	m_BackgroundRenderer.AddSprite("res/background.png", { -DIST_TO_CANVAS - BG_TILE_WIDTH, conf.WIN_HEIGHT + DIST_TO_CANVAS - BG_TILE_WIDTH }, { BG_TILE_WIDTH, BG_TILE_WIDTH });
 	m_BackgroundRenderer.getShaderPtr()->SetUniform1f("u_TileWidth", BG_TILE_WIDTH);
 	
-	m_LineRenderer.AddLine({-1000.f, conf.WIN_HEIGHT - CENTER * BG_TILE_WIDTH}, {10000.f, conf.WIN_HEIGHT - CENTER * BG_TILE_WIDTH }, {1.f, 0.f, 0.f, 1.f});
-	m_LineRenderer.AddLine({ CENTER * BG_TILE_WIDTH, -10000.f}, { CENTER * BG_TILE_WIDTH, 3000.f }, { 0.f, 0.f, 1.f, 1.f });
+	m_LineRenderer.AddLine({-1000.f, CENTER * BG_TILE_WIDTH}, {10000.f, CENTER * BG_TILE_WIDTH }, {1.f, 0.f, 0.f, 1.f});
+	m_LineRenderer.AddLine({ CENTER * BG_TILE_WIDTH, -1000.f}, { CENTER * BG_TILE_WIDTH, 10000.f }, { 0.f, 0.f, 1.f, 1.f });
 
 	m_FontRenderer.PrintMultilineText("(0.0, 0.0)", { CENTER * BG_TILE_WIDTH + 15.f, conf.WIN_HEIGHT - CENTER * BG_TILE_WIDTH + FONT_SIZE * 12.f }, FONT_SIZE, { 0.15, 0.15, 0.15, 0.5f });
 	m_Zoom = 1.f;
@@ -142,14 +142,14 @@ void Mapper::ProcessMouse(GLFWwindow* window)
 			m_ViewOffset.x += -m_DynamicViewBorder.x - m_ViewOffset.x;
 		}
 
-		if (m_ViewOffset.y + y > -DIST_TO_CANVAS) {
+		if (m_ViewOffset.y + y < DIST_TO_CANVAS && m_ViewOffset.y + y > -m_DynamicViewBorder.y) {
 			m_ViewOffset.y += y;
 		}
-		else if (m_ViewOffset.y + y <= DIST_TO_CANVAS) {
-			m_ViewOffset.y += -DIST_TO_CANVAS - m_ViewOffset.y;
+		else if (m_ViewOffset.y + y >= DIST_TO_CANVAS) {
+			m_ViewOffset.y += DIST_TO_CANVAS - m_ViewOffset.y;
 		}
 		else {
-			//m_ViewOffset.y += m_DynamicViewBorder.y - m_ViewOffset.y;
+			m_ViewOffset.y += -m_DynamicViewBorder.y - m_ViewOffset.y;
 		}
 	}
 }
@@ -180,7 +180,7 @@ void Mapper::loadImage(const std::string& path)
 		m_OperationImage.Size.y = information.Size.y;
 
 		m_OperationImage.Position.x = CENTER * BG_TILE_WIDTH;
-		m_OperationImage.Position.y = conf.WIN_HEIGHT - BG_TILE_WIDTH * CENTER - information.Size.y;
+		m_OperationImage.Position.y = BG_TILE_WIDTH * CENTER;
 
 		m_ImageRenderer.AddSprite(m_OperationImage);
 

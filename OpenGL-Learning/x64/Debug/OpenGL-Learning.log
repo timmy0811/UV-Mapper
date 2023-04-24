@@ -1,14 +1,14 @@
-﻿C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.CppBuild.targets(517,5): warning MSB8028: Das Zwischenverzeichnis (x64\Debug\) enthält freigegebene Dateien aus einem anderen Projekt (OpenGL-Learning.vcxproj, Template.vcxproj). Dies kann zu einem falschen Bereinigungs- und Neuerstellungsverhalten führen.
+﻿C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.CppBuild.targets(514,5): warning MSB8028: Das Zwischenverzeichnis (x64\Debug\) enthält freigegebene Dateien aus einem anderen Projekt (OpenGL-Learning.vcxproj, Template.vcxproj). Dies kann zu einem falschen Bereinigungs- und Neuerstellungsverhalten führen.
   Mapper.cpp
-C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\shared\minwindef.h(130,1): warning C4005: "APIENTRY": Makro-Neudefinition
-C:\Git\UV-Mapper\Dependencies\glfw\include\GLFW\glfw3.h(123,1): message : Siehe vorherige Definition von "APIENTRY"
-C:\Git\UV-Mapper\OpenGL-Learning\src\mapper\helper\CustomRenderer.h(38,13): warning C4244: "*=": Konvertierung von "float" in "int", möglicher Datenverlust
-C:\Git\UV-Mapper\OpenGL-Learning\src\mapper\helper\CustomRenderer.h(496,18): warning C4244: "Initialisierung": Konvertierung von "float" in "int", möglicher Datenverlust
-C:\Git\UV-Mapper\OpenGL-Learning\src\mapper\helper\CustomRenderer.h(593,1): warning C4267: "Argument": Konvertierung von "size_t" nach "int", Datenverlust möglich
-C:\Git\UV-Mapper\OpenGL-Learning\src\mapper\core\Mapper.cpp(39,15): warning C4244: "Initialisierung": Konvertierung von "float" in "size_t", möglicher Datenverlust
-C:\Git\UV-Mapper\OpenGL-Learning\src\mapper\core\Mapper.cpp(129,10): warning C4244: "Initialisierung": Konvertierung von "double" in "float", möglicher Datenverlust
-C:\Git\UV-Mapper\OpenGL-Learning\src\mapper\core\Mapper.cpp(130,10): warning C4244: "Initialisierung": Konvertierung von "double" in "float", möglicher Datenverlust
-C:\Git\UV-Mapper\OpenGL-Learning\src\mapper\core\Mapper.cpp(179,45): warning C4244: "=": Konvertierung von "T" in "T", möglicher Datenverlust
+C:\Program Files (x86)\Windows Kits\10\Include\10.0.19041.0\shared\minwindef.h(130,1): warning C4005: "APIENTRY": Makro-Neudefinition
+D:\Git\UV-Mapper\Dependencies\glfw\include\GLFW\glfw3.h(123): message : Siehe vorherige Definition von "APIENTRY"
+D:\Git\UV-Mapper\OpenGL-Learning\src\mapper\helper\CustomRenderer.h(38,13): warning C4244: "*=": Konvertierung von "float" in "int", möglicher Datenverlust
+D:\Git\UV-Mapper\OpenGL-Learning\src\mapper\helper\CustomRenderer.h(496,18): warning C4244: "Initialisierung": Konvertierung von "float" in "int", möglicher Datenverlust
+D:\Git\UV-Mapper\OpenGL-Learning\src\mapper\helper\CustomRenderer.h(593,1): warning C4267: "Argument": Konvertierung von "size_t" nach "int", Datenverlust möglich
+D:\Git\UV-Mapper\OpenGL-Learning\src\mapper\core\Mapper.cpp(39,15): warning C4244: "Initialisierung": Konvertierung von "float" in "size_t", möglicher Datenverlust
+D:\Git\UV-Mapper\OpenGL-Learning\src\mapper\core\Mapper.cpp(129,10): warning C4244: "Initialisierung": Konvertierung von "double" in "float", möglicher Datenverlust
+D:\Git\UV-Mapper\OpenGL-Learning\src\mapper\core\Mapper.cpp(130,10): warning C4244: "Initialisierung": Konvertierung von "double" in "float", möglicher Datenverlust
+D:\Git\UV-Mapper\OpenGL-Learning\src\mapper\core\Mapper.cpp(179,45): warning C4244: "=": Konvertierung von "T" in "T", möglicher Datenverlust
           with
           [
               T=int
@@ -17,7 +17,7 @@ C:\Git\UV-Mapper\OpenGL-Learning\src\mapper\core\Mapper.cpp(179,45): warning C42
           [
               T=float
           ]
-C:\Git\UV-Mapper\OpenGL-Learning\src\mapper\core\Mapper.cpp(180,45): warning C4244: "=": Konvertierung von "T" in "T", möglicher Datenverlust
+D:\Git\UV-Mapper\OpenGL-Learning\src\mapper\core\Mapper.cpp(180,45): warning C4244: "=": Konvertierung von "T" in "T", möglicher Datenverlust
           with
           [
               T=int
@@ -26,9 +26,4 @@ C:\Git\UV-Mapper\OpenGL-Learning\src\mapper\core\Mapper.cpp(180,45): warning C42
           [
               T=float
           ]
-glew32s.lib(glew.obj) : warning LNK4099: PDB "" wurde nicht mit "glew32s.lib(glew.obj)" oder an "" gefunden; Objekt wird verknüpft, als ob keine Debuginformationen vorhanden wären.
-nfd_d.lib(nfd_win.obj) : warning LNK4099: PDB "" wurde nicht mit "nfd_d.lib(nfd_win.obj)" oder an "" gefunden; Objekt wird verknüpft, als ob keine Debuginformationen vorhanden wären.
-nfd_d.lib(nfd_common.obj) : warning LNK4099: PDB "" wurde nicht mit "nfd_d.lib(nfd_common.obj)" oder an "" gefunden; Objekt wird verknüpft, als ob keine Debuginformationen vorhanden wären.
-LINK : warning LNK4098: Standardbibliothek "MSVCRT" steht in Konflikt mit anderen Bibliotheken; /NODEFAULTLIB:Bibliothek verwenden.
-LINK : warning LNK4098: Standardbibliothek "LIBCMT" steht in Konflikt mit anderen Bibliotheken; /NODEFAULTLIB:Bibliothek verwenden.
-  OpenGL-Learning.vcxproj -> C:\Git\UV-Mapper\x64\Debug\UVMapper.exe
+  OpenGL-Learning.vcxproj -> D:\Git\UV-Mapper\x64\Debug\UVMapper.exe
