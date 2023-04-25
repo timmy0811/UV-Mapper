@@ -16,6 +16,7 @@
 #define DIST_TO_CANVAS 200.f
 #define CENTER 4.f
 #define ZOOM_SPEED 0.055f
+#define ZOOM_MAX_IN 15.f
 
 class Mapper
 {
@@ -28,6 +29,11 @@ private:
 	Helper::FontRenderer m_FontRenderer;
 
 	Helper::SpriteRenderer m_ImageRenderer;
+	glm::vec2 m_ImageSize;
+
+	bool m_ImageOpen;
+	float m_GridAlphaMax = 1.f;
+	float m_GridAlpha;
 
 	Helper::Sprite m_OperationImage;
 

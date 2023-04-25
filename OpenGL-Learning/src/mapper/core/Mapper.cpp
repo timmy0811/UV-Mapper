@@ -17,8 +17,6 @@ Mapper::Mapper()
 
 	m_FontRenderer.PrintMultilineText("(0.0, 0.0)", { CENTER * BG_TILE_WIDTH + 15.f, conf.WIN_HEIGHT - CENTER * BG_TILE_WIDTH + FONT_SIZE * 12.f }, FONT_SIZE, { 0.15, 0.15, 0.15, 0.5f });
 	m_Zoom = 1.f;
-
-	m_GridRenderer.AddLine({ CENTER * BG_TILE_WIDTH , CENTER * BG_TILE_WIDTH + 100.f }, { CENTER * BG_TILE_WIDTH + 700, CENTER * BG_TILE_WIDTH + 100.f }, { 0.f, 1.f, 0.f, 1.0f });
 }
 
 Mapper::~Mapper()
@@ -34,12 +32,15 @@ void Mapper::OnUpdate()
 	m_ImageBorderRenderer.shader->Bind();
 	m_ImageBorderRenderer.shader->SetUniformMat4f("u_MVP", m_Projection * glm::scale(glm::mat4(1.f), glm::vec3(m_Zoom)) * glm::translate(glm::mat4(1.f), glm::vec3(m_ViewOffset, 0.f)));
 	m_GridRenderer.shader->Bind();
-	m_GridRenderer.shader->SetUniform1f("u_TexelWidth", 10.f);
+	m_GridRenderer.shader->SetUniform1f("u_TexelWidth", 1.f);
 	m_GridRenderer.shader->SetUniformMat4f("u_MVP", m_Projection * glm::scale(glm::mat4(1.f), glm::vec3(m_Zoom)) * glm::translate(glm::mat4(1.f), glm::vec3(m_ViewOffset, 0.f)));
 
 	//m_BackgroundRenderer.SetTranslation({ m_ViewOffset.x, m_ViewOffset.y, 0.f }, glm::vec3(m_Zoom));		// Background transforming?
 	m_FontRenderer.SetTranslation({ m_ViewOffset.x, m_ViewOffset.y, 0.f }, glm::vec3(m_Zoom));
 	m_ImageRenderer.SetTranslation({ m_ViewOffset.x, m_ViewOffset.y, 0.f }, glm::vec3(m_Zoom));
+
+	float fac = std::clamp((float)((m_Zoom - 3.f) / (ZOOM_MAX_IN / 2.f)), 0.f, 1.f);
+	m_GridAlpha = fac * m_GridAlphaMax;
 }
 
 void Mapper::OnRender()
@@ -54,7 +55,23 @@ void Mapper::OnRender()
 	m_BackgroundRenderer.DrawInstanced(count);
 	m_FontRenderer.Draw();
 	m_ImageRenderer.Draw();
-	m_GridRenderer.DrawInstanced(20);
+
+	if (m_ImageOpen && m_Zoom > 0.f) {
+		m_GridRenderer.shader->Bind();
+
+		// Horizontal
+		m_GridRenderer.vb->Empty();
+		m_GridRenderer.AddLine({ CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH + 1.f}, { CENTER * BG_TILE_WIDTH + m_ImageSize.x, CENTER * BG_TILE_WIDTH + 1.f}, { 1.f, 1.f, 1.f, m_GridAlpha * 0.5 });
+		m_GridRenderer.shader->SetUniform1f("u_X", 0.f);
+		m_GridRenderer.DrawInstanced(m_ImageSize.y - 1.f);
+
+		// Vertical
+		m_GridRenderer.vb->Empty();
+		m_GridRenderer.AddLine({ CENTER * BG_TILE_WIDTH + 1.f, CENTER * BG_TILE_WIDTH}, { CENTER * BG_TILE_WIDTH + 1.f, CENTER * BG_TILE_WIDTH + m_ImageSize.y }, { 1.f, 1.f, 1.f, m_GridAlpha * 0.5 });
+		m_GridRenderer.shader->SetUniform1f("u_X", 1.f);
+		m_GridRenderer.DrawInstanced(m_ImageSize.x - 1.f);
+	}
+
 	m_LineRenderer.Draw(3.f);
 	m_ImageBorderRenderer.Draw();
 }
@@ -62,10 +79,10 @@ void Mapper::OnRender()
 void Mapper::OnGuiRender()
 {
 	if (m_ImageRenderer.getCount() == 0) {
-		ImGui::PushStyleColor(ImGuiCol_TitleBg, { 0.8f, 0.1f, 0.1f, 1.f });
-		ImGui::PushStyleColor(ImGuiCol_TitleBgActive, {0.9f, 0.2f, 0.2f, 1.f});
+		/*ImGui::PushStyleColor(ImGuiCol_TitleBg, { 0.8f, 0.1f, 0.1f, 1.f });
+		ImGui::PushStyleColor(ImGuiCol_TitleBgActive, {0.9f, 0.2f, 0.2f, 1.f});*/
 
-		float w = 450.f, h = 100.f;
+		float w = 450.f, h = 80.f;
 		ImGui::SetNextWindowSize({ w, h });
 		ImGui::SetNextWindowPos({ (float)conf.WIN_WIDTH / 2.f - w / 2.f, (float)conf.WIN_HEIGHT / 2.f - h / 2.f });
 
@@ -88,14 +105,15 @@ void Mapper::OnGuiRender()
 		}
 
 		ImGui::End();
-		ImGui::PopStyleColor(2);
+		/*ImGui::PopStyleColor(2);*/
 	}
 	else {
 		ImGui::SetNextWindowSize({ (float)conf.WIN_WIDTH / 3.5f, (float)conf.WIN_HEIGHT });
-		ImGui::SetNextWindowBgAlpha(0.5f);
+		ImGui::SetNextWindowBgAlpha(0.7f);
 		ImGui::SetNextWindowPos({ (float)conf.WIN_WIDTH - (float)conf.WIN_WIDTH / 3.5f, 0.f });
 
 		ImGui::Begin("Attributes");
+		ImGui::Button("Thats a button!");
 
 		ImGui::End();
 	}
@@ -177,7 +195,7 @@ void Mapper::OnScrollCallback(GLFWwindow* window, double xpos, double ypos)
 	else if (ypos > 0.f) m_Zoom += speed;
 
 	m_Zoom = std::max(0.4f, m_Zoom);
-	m_Zoom = std::min(10.f, m_Zoom);
+	m_Zoom = std::min(ZOOM_MAX_IN, m_Zoom);
 }
 
 void Mapper::loadImage(const std::string& path)
@@ -196,14 +214,17 @@ void Mapper::loadImage(const std::string& path)
 
 		m_DynamicViewBorder = information.Size + glm::ivec2(100.f, 100.f);
 
-		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH }, { CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH + information.Size.y }, { 1.f, 1.f, 1.f, 1.f });
-		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH + information.Size.y }, { CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH + information.Size.y }, { 1.f, 1.f, 1.f, 1.f });
+		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH }, { CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH + information.Size.y }, { 1.f, 1.f, 1.f, 0.5f });
+		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH + information.Size.y }, { CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH + information.Size.y }, { 1.f, 1.f, 1.f, 0.5f });
 
-		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH }, { CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH }, { 1.f, 1.f, 1.f, 1.f });
-		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH }, { CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH + information.Size.y }, { 1.f, 1.f, 1.f, 1.f });
+		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH }, { CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH }, { 1.f, 1.f, 1.f, 0.5f });
+		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH }, { CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH + information.Size.y }, { 1.f, 1.f, 1.f, 0.5f });
 
-		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH + information.Size.x - 10.f, CENTER * BG_TILE_WIDTH + information.Size.y }, { CENTER * BG_TILE_WIDTH + information.Size.x + 10.f, CENTER * BG_TILE_WIDTH + information.Size.y }, { 0.f, 0.9f, 1.f, 0.7f });
-		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH + information.Size.y - 10.f }, { CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH + information.Size.y + 10.f }, { 1.f, 0.0f, 0.8f, 0.7f });
+		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH + information.Size.x - 10.f, CENTER * BG_TILE_WIDTH + information.Size.y }, { CENTER * BG_TILE_WIDTH + information.Size.x + 10.f, CENTER * BG_TILE_WIDTH + information.Size.y }, { 0.f, 0.9f, 1.f, 0.8f });
+		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH + information.Size.y - 10.f }, { CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH + information.Size.y + 10.f }, { 1.f, 0.0f, 0.8f, 0.8f });
+
+		m_ImageSize = information.Size;
+		m_ImageOpen = true;
 	}
 }
 

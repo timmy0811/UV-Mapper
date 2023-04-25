@@ -87,7 +87,7 @@ namespace Helper {
 			shader->Bind();
 			va->Bind();
 			ib->Bind();
-			Renderer::DrawInstanced(*va, *ib, *shader, ib->GetCount(), count);
+			Renderer::DrawInstancedLines(*va, *ib, *shader, ib->GetCount(), count);
 		}
 	};
 
