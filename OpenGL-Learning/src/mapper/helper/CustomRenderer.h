@@ -63,14 +63,13 @@ namespace Helper {
 
 		void AddLine(const glm::vec2& posA, const glm::vec2& posB, const glm::vec4& color) {
 			LineVertex v[2];
-			
+
 			v[0].Position = posA;
 			v[1].Position = posB;
 
 			v[0].Color = color;
 			v[1].Color = color;
 
-			
 			vb->AddVertexData(v, 2 * sizeof(LineVertex));
 		}
 
@@ -234,24 +233,24 @@ namespace Helper {
 			va->AddBuffer(*vb, *vbLayout);
 
 			shader->Bind();
-			
+
 			shader->SetUniformMat4f("u_MVP", projection * view * glm::translate(glm::mat4(1.f), translation));
 		}
 
-		void SetTranslation(const glm::vec3& translation, const glm::vec3& scale = {1.f, 1.f, 1.f}) {
+		void SetTranslation(const glm::vec3& translation, const glm::vec3& scale = { 1.f, 1.f, 1.f }) {
 			this->translation = translation;
 			shader->Bind();
 			shader->SetUniformMat4f("u_MVP", projection * view * glm::scale(glm::mat4(1.f), scale) * glm::translate(glm::mat4(1.f), translation));
 		}
 
-		void RefreshTextures() {
+		void RefreshTextures(bool increment = true) {
 			int sampler[8]{};
 			for (int i = 0; i < textures.size(); i++) {
 				if (int j = textures[i]->GetBoundPort() != -1) {
 					sampler[i] = j;
 				}
 				else {
-					sampler[i] = textures[i]->Bind(Configuration::Global::SAMPLER_SLOT_SPRITES + Configuration::Global::TEXTURE_BINDING++);
+					sampler[i] = textures[i]->Bind(Configuration::Global::SAMPLER_SLOT_SPRITES + (increment ? Configuration::Global::TEXTURE_BINDING++ : Configuration::Global::TEXTURE_BINDING));
 				}
 			}
 
@@ -263,7 +262,15 @@ namespace Helper {
 			vb->Empty();
 		}
 
-		unsigned int AddSprite(const std::string& path, const glm::vec2& position, const glm::vec2& size, const bool flipUV = false) {
+		const glm::vec4 getLastImageRGB(const glm::vec2& pixel) {
+			if (textures.size() > 0) {
+				Texture* tex = textures[textures.size() - 1];
+				return tex->getPixelRGBA(pixel);
+			}
+			else return glm::vec4();
+		}
+
+		unsigned int AddSprite(const std::string& path, const glm::vec2& position, const glm::vec2& size, const bool flipUV = false, bool incrementPorts = true) {
 			float index = -1.f;
 			for (int i = 0; i < textures.size(); i++) {
 				if (textures[i]->GetPath().compare(path) == 0) {
@@ -287,13 +294,13 @@ namespace Helper {
 			vb->AddVertexData(verts, sizeof(Sprite2DVertex) * 4);
 			triangles += 2;
 
-			RefreshTextures();
+			RefreshTextures(incrementPorts);
 
 			sprites[idPtr] = Sprite(path, position, size, flipUV);
 			return idPtr++;
 		}
 
-		unsigned int AddSprite(const std::string& path, const glm::vec2& position, const glm::vec2& size, Helper::Vec2_4 uvs, const bool flipUV = false) {
+		unsigned int AddSprite(const std::string& path, const glm::vec2& position, const glm::vec2& size, Helper::Vec2_4 uvs, const bool flipUV = false, bool incrementPorts = true) {
 			float index = -1.f;
 			for (int i = 0; i < textures.size(); i++) {
 				if (textures[i]->GetPath().compare(path) == 0) {
@@ -317,13 +324,20 @@ namespace Helper {
 			vb->AddVertexData(verts, sizeof(Sprite2DVertex) * 4);
 			triangles += 2;
 
-			RefreshTextures();
+			RefreshTextures(incrementPorts);
 			sprites[idPtr] = Sprite(path, position, size, flipUV);
 			return idPtr++;
 		}
 
-		unsigned int AddSprite(const Sprite& sprite) {
-			return AddSprite(sprite.Path, sprite.Position, sprite.Size, sprite.Uvs, sprite.FlipUvs);
+		unsigned int AddSprite(const Sprite& sprite, bool incrementPorts = true) {
+			return AddSprite(sprite.Path, sprite.Position, sprite.Size, sprite.Uvs, sprite.FlipUvs, incrementPorts);
+		}
+
+		void SaveAsFile(const std::string& path, int index){
+			int w = textures[index]->GetWidth();
+			int h = textures[index]->GetHeight();
+			int c = textures[index]->GetChannels();
+			stbi_write_png(path.c_str(), w, h, c, textures[index]->GetDataAllocator(), c * w);
 		}
 
 		void RemoveSprite(unsigned int id) {
@@ -333,6 +347,17 @@ namespace Helper {
 			for (auto const& [key, value] : sprites) {
 				AddSprite(value);
 			}
+		}
+
+		void RemoveAllSprites() {
+			vb->Empty();
+			sprites.clear();
+			for (int i = 0; i < textures.size(); i++) {
+				delete textures[i];
+			}
+			textures.clear();
+			textures.shrink_to_fit();
+			idPtr = 0;
 		}
 
 		~SpriteRenderer() {
@@ -482,7 +507,7 @@ namespace Helper {
 			delete shader;
 		}
 
-		void SetTranslation(const glm::vec3& translation, const glm::vec3& scale = {1.f, 1.f, 1.f}) {
+		void SetTranslation(const glm::vec3& translation, const glm::vec3& scale = { 1.f, 1.f, 1.f }) {
 			this->translation = translation;
 			shader->Bind();
 			shader->SetUniformMat4f("u_MVP", projection * view * glm::scale(glm::mat4(1.f), scale) * glm::translate(glm::mat4(1.f), translation));
@@ -526,7 +551,7 @@ namespace Helper {
 		}
 
 		/// <summary>
-		/// 
+		///
 		/// </summary>
 		/// <param name="text"></param>
 		/// <param name="position"></param>
@@ -604,5 +629,97 @@ namespace Helper {
 		}
 
 		inline const size_t getCount() const { return count; }
+	};
+
+	class QuadRenderer {
+	public:
+		std::unique_ptr<VertexBuffer> vb;
+		std::unique_ptr<IndexBuffer> ib;
+		std::unique_ptr<VertexBufferLayout> vbLayout;
+		std::unique_ptr<VertexArray> va;
+
+		glm::mat4 projection;
+		glm::mat4 view;
+		glm::vec3 translation;
+
+		Shader* shader;
+		size_t triangles = 0;
+
+		QuadRenderer(int maxQuads, const std::string& shaderVert, const std::string& shaderFrag)
+			: shader(new Shader(shaderVert, shaderFrag)) {
+			projection = glm::ortho(0.0f, (float)conf.WIN_WIDTH, 0.0f, (float)conf.WIN_HEIGHT, -1.0f, 1.0f);
+			translation = glm::vec3(0.f, 0.f, 0.f);
+			view = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, 0.f));
+
+			unsigned int* indices = new unsigned int[maxQuads * 6];
+
+			unsigned int offset = 0;
+			for (size_t i = 0; i < maxQuads * 6; i += 6) {
+				indices[i + 0] = 0 + offset;
+				indices[i + 1] = 1 + offset;
+				indices[i + 2] = 2 + offset;
+
+				indices[i + 3] = 2 + offset;
+				indices[i + 4] = 3 + offset;
+				indices[i + 5] = 0 + offset;
+
+				offset += 4;
+			}
+
+			ib = std::make_unique<IndexBuffer>(indices, maxQuads * 6);
+			vb = std::make_unique<VertexBuffer>(maxQuads * 4, sizeof(LineVertex));
+
+			delete[] indices;
+
+			vbLayout = std::make_unique<VertexBufferLayout>();
+			vbLayout->Push<float>(2);	// Position
+			vbLayout->Push<float>(4);	// Color
+
+			va = std::make_unique<VertexArray>();
+			va->AddBuffer(*vb, *vbLayout);
+
+			shader->Bind();
+
+			shader->SetUniformMat4f("u_MVP", projection * view * glm::translate(glm::mat4(1.f), translation));
+		}
+
+		void SetTranslation(const glm::vec3& translation, const glm::vec3& scale = { 1.f, 1.f, 1.f }) {
+			this->translation = translation;
+			shader->Bind();
+			shader->SetUniformMat4f("u_MVP", projection * view * glm::scale(glm::mat4(1.f), scale) * glm::translate(glm::mat4(1.f), translation));
+		}
+
+		void Empty() {
+			vb->Empty();
+		}
+
+		void AddQuad(const glm::vec2& position, const glm::vec2& size, const glm::vec4& color) {
+			LineVertex verts[4] = {
+				{position + glm::vec2(0.f, 0.f), color},
+				{position + glm::vec2(size.x, 0.f), color},
+				{position + glm::vec2(size.x, size.y), color},
+				{position + glm::vec2(0.f, size.y), color}
+			};
+
+			vb->Bind();
+			vb->AddVertexData(verts, sizeof(LineVertex) * 4);
+			triangles += 2;
+		}
+
+
+		~QuadRenderer() {
+			delete shader;
+		}
+
+		inline void Draw() {
+			Renderer::Draw(*va, *ib, *shader, GL_TRIANGLES, ib->GetCount());
+			shader->Unbind();
+		}
+
+		inline void DrawInstanced(size_t count) {
+			Renderer::DrawInstanced(*va, *ib, *shader, ib->GetCount(), count);
+		}
+
+		inline Shader* getShaderPtr() { return shader; }
 	};
 }

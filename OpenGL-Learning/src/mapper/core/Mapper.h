@@ -16,7 +16,8 @@
 #define DIST_TO_CANVAS 200.f
 #define CENTER 4.f
 #define ZOOM_SPEED 0.055f
-#define ZOOM_MAX_IN 15.f
+#define ZOOM_MAX_IN 20.f
+#define SELECT_PXL_SIZE 1.5f
 
 class Mapper
 {
@@ -27,6 +28,7 @@ private:
 
 	Helper::SpriteRenderer m_BackgroundRenderer;
 	Helper::FontRenderer m_FontRenderer;
+	Helper::QuadRenderer m_PixelRenderer;
 
 	Helper::SpriteRenderer m_ImageRenderer;
 	glm::vec2 m_ImageSize;
@@ -34,6 +36,10 @@ private:
 	bool m_ImageOpen;
 	float m_GridAlphaMax = 1.f;
 	float m_GridAlpha;
+	bool m_Flipped;
+	bool m_LastFlippedState;
+
+	nfdchar_t* m_WorkingPath = new char[200];
 
 	Helper::Sprite m_OperationImage;
 
@@ -56,7 +62,10 @@ private:
 	static void OnScrollCallback(GLFWwindow* window, double xpos, double ypos);
 
 	void loadImage(const std::string& path);
+	void saveImage(const std::string& path);
 	void addGuideLines();
+
+	void drawSelectPixel();
 
 public:
 	explicit Mapper();

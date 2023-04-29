@@ -6,7 +6,8 @@ Mapper::Mapper()
 	m_ImageBorderRenderer(6, "res/shader/line/shader_single_color.vert", "res/shader/line/shader_single_color.frag"),
 	m_GridRenderer(1, "res/shader/line/shader_single_color_instanced.vert", "res/shader/line/shader_single_color.frag"),
 	m_FontRenderer("res/ascii_gui_0.png", "res/font.yaml", 128, false),
-	m_ImageRenderer(1, "res/shader/sprite/shader_sprite.vert", "res/shader/sprite/shader_sprite.frag")
+	m_ImageRenderer(1, "res/shader/sprite/shader_sprite.vert", "res/shader/sprite/shader_sprite.frag"),
+	m_PixelRenderer(2, "res/shader/line/shader_single_color.vert", "res/shader/line/shader_single_color.frag")
 {
 	m_Projection = glm::ortho(0.0f, (float)conf.WIN_WIDTH, 0.0f, (float)conf.WIN_HEIGHT, -1.0f, 1.0f);
 
@@ -21,6 +22,7 @@ Mapper::Mapper()
 
 Mapper::~Mapper()
 {
+	delete[] m_WorkingPath;
 }
 
 void Mapper::OnUpdate()
@@ -33,7 +35,10 @@ void Mapper::OnUpdate()
 	m_ImageBorderRenderer.shader->SetUniformMat4f("u_MVP", m_Projection * glm::scale(glm::mat4(1.f), glm::vec3(m_Zoom)) * glm::translate(glm::mat4(1.f), glm::vec3(m_ViewOffset, 0.f)));
 	m_GridRenderer.shader->Bind();
 	m_GridRenderer.shader->SetUniform1f("u_TexelWidth", 1.f);
-	m_GridRenderer.shader->SetUniformMat4f("u_MVP", m_Projection * glm::scale(glm::mat4(1.f), glm::vec3(m_Zoom)) * glm::translate(glm::mat4(1.f), glm::vec3(m_ViewOffset, 0.f)));
+	glm::mat4 m = m_Projection * glm::scale(glm::mat4(1.f), glm::vec3(m_Zoom)) * glm::translate(glm::mat4(1.f), glm::vec3(m_ViewOffset, 0.f));
+	m_GridRenderer.shader->SetUniformMat4f("u_MVP", m);
+
+	m_PixelRenderer.SetTranslation({ m_ViewOffset.x, m_ViewOffset.y, 0.f }, glm::vec3(m_Zoom));
 
 	//m_BackgroundRenderer.SetTranslation({ m_ViewOffset.x, m_ViewOffset.y, 0.f }, glm::vec3(m_Zoom));		// Background transforming?
 	m_FontRenderer.SetTranslation({ m_ViewOffset.x, m_ViewOffset.y, 0.f }, glm::vec3(m_Zoom));
@@ -56,24 +61,26 @@ void Mapper::OnRender()
 	m_FontRenderer.Draw();
 	m_ImageRenderer.Draw();
 
-	if (m_ImageOpen && m_Zoom > 0.f) {
+	if (m_ImageOpen && m_Zoom > 3.f) {
 		m_GridRenderer.shader->Bind();
 
 		// Horizontal
 		m_GridRenderer.vb->Empty();
-		m_GridRenderer.AddLine({ CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH + 1.f}, { CENTER * BG_TILE_WIDTH + m_ImageSize.x, CENTER * BG_TILE_WIDTH + 1.f}, { 1.f, 1.f, 1.f, m_GridAlpha * 0.5 });
+		m_GridRenderer.AddLine({ CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH + 1.f }, { CENTER * BG_TILE_WIDTH + m_ImageSize.x, CENTER * BG_TILE_WIDTH + 1.f }, { 1.f, 1.f, 1.f, m_GridAlpha * 0.5 });
 		m_GridRenderer.shader->SetUniform1f("u_X", 0.f);
 		m_GridRenderer.DrawInstanced(m_ImageSize.y - 1.f);
 
 		// Vertical
 		m_GridRenderer.vb->Empty();
-		m_GridRenderer.AddLine({ CENTER * BG_TILE_WIDTH + 1.f, CENTER * BG_TILE_WIDTH}, { CENTER * BG_TILE_WIDTH + 1.f, CENTER * BG_TILE_WIDTH + m_ImageSize.y }, { 1.f, 1.f, 1.f, m_GridAlpha * 0.5 });
+		m_GridRenderer.AddLine({ CENTER * BG_TILE_WIDTH + 1.f, CENTER * BG_TILE_WIDTH }, { CENTER * BG_TILE_WIDTH + 1.f, CENTER * BG_TILE_WIDTH + m_ImageSize.y }, { 1.f, 1.f, 1.f, m_GridAlpha * 0.5 });
 		m_GridRenderer.shader->SetUniform1f("u_X", 1.f);
 		m_GridRenderer.DrawInstanced(m_ImageSize.x - 1.f);
 	}
 
 	m_LineRenderer.Draw(3.f);
 	m_ImageBorderRenderer.Draw();
+
+	drawSelectPixel();
 }
 
 void Mapper::OnGuiRender()
@@ -88,11 +95,13 @@ void Mapper::OnGuiRender()
 
 		ImGui::Begin("Load an image!");
 		ImGui::Text("Load an Image (jpg,png,bmp,tga,hdr) to continue.\nmax resolution: 7.680 x 7.680");
+		
 		if (ImGui::Button("Select and Load")) {
 			nfdchar_t* outPath = NULL;
 			nfdresult_t result = NFD_OpenDialog("jpg,png,bmp,tga,hdr", NULL, &outPath);
 
 			if (result == NFD_OKAY) {
+				std::memcpy(m_WorkingPath, outPath, std::strlen(outPath));
 				loadImage(outPath);
 				free(outPath);
 			}
@@ -104,6 +113,9 @@ void Mapper::OnGuiRender()
 			}
 		}
 
+		ImGui::SameLine(0.f, 20.f);
+		ImGui::Checkbox("Flip", &m_Flipped);
+
 		ImGui::End();
 		/*ImGui::PopStyleColor(2);*/
 	}
@@ -113,8 +125,55 @@ void Mapper::OnGuiRender()
 		ImGui::SetNextWindowPos({ (float)conf.WIN_WIDTH - (float)conf.WIN_WIDTH / 3.5f, 0.f });
 
 		ImGui::Begin("Attributes");
-		ImGui::Button("Thats a button!");
+		if (ImGui::CollapsingHeader("Image", ImGuiTreeNodeFlags_DefaultOpen)) {
+			m_LastFlippedState = m_Flipped;
+			ImGui::Checkbox("Flip Uvs", &m_Flipped);
+			if (m_Flipped != m_LastFlippedState && m_Flipped) {
+				m_OperationImage.FlipUvs = true;
+				m_ImageRenderer.RemoveAllSprites();
+				m_OperationImage.Id = m_ImageRenderer.AddSprite(m_OperationImage, false);
+			}
+			else if (m_Flipped != m_LastFlippedState && !m_Flipped) {
+				m_OperationImage.FlipUvs = false;
+				m_ImageRenderer.RemoveAllSprites();
+				m_OperationImage.Id = m_ImageRenderer.AddSprite(m_OperationImage, false);
+			}
+		}
 
+		if (ImGui::CollapsingHeader("Reload and Discard", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::Text("Save image as PNG: ");
+			ImGui::SameLine(0.f, 100.f);
+
+			static nfdchar_t* outPath = NULL;
+			static nfdresult_t result{};
+			if (ImGui::Button("Get Path")) {
+				result = NFD_OpenDialog("jpg,png,bmp,tga,hdr", NULL, &outPath);
+
+				if (result == NFD_CANCEL) {
+					LOGC("Canceled selection.", LOG_COLOR::WARNING);
+				}
+				else {
+					printf("Error: %s\n", NFD_GetError());
+				}
+			}
+			ImGui::Text(outPath == nullptr ||outPath == NULL || *outPath == '_' || std::strlen(outPath) <= 0 ? "No path selected!" : outPath);
+
+			static std::string msg = "";
+
+			if (ImGui::Button("Save", { (float)conf.WIN_WIDTH / 3.5f - 20.f, 25.f })) {
+				if (result == NFD_OKAY && outPath != NULL) {
+					saveImage(outPath);
+					free(outPath);
+					outPath = new char('_');
+
+					msg = "File Saved successfully";
+				}
+				else {
+					msg = "This is not a valid path!";
+				}			
+			}
+			ImGui::Text(msg.c_str());
+		}
 		ImGui::End();
 	}
 }
@@ -126,6 +185,36 @@ void Mapper::OnInput(GLFWwindow* window)
 		glfwSetScrollCallback(window, OnScrollCallback);
 		ProcessMouse(window);
 	}
+}
+
+void Mapper::drawSelectPixel()
+{
+	if (m_ImageOpen) {
+		glm::vec2 imgPixel{};
+		glm::vec2 mouse = { s_MouseX, conf.WIN_HEIGHT - s_MouseY };
+
+		mouse -= CENTER * BG_TILE_WIDTH * m_Zoom + m_ViewOffset * m_Zoom;
+		imgPixel = { std::floor(mouse.x / m_Zoom), m_ImageSize.y - std::ceil(mouse.y / m_Zoom) };
+		if (imgPixel.x < m_ImageSize.x && imgPixel.y < m_ImageSize.y && imgPixel.x >= 0.f && imgPixel.y >= 0.f ) {
+			glm::vec4 rgb = m_ImageRenderer.getLastImageRGB(imgPixel);
+			m_PixelRenderer.Empty();
+
+			if (rgb.a > 0.1f) {
+				constexpr float boarderFac = 1.1f;
+				float borderwidth = (SELECT_PXL_SIZE - SELECT_PXL_SIZE * boarderFac) / 2.f;
+				m_PixelRenderer.AddQuad({ CENTER * BG_TILE_WIDTH + imgPixel.x - SELECT_PXL_SIZE / 4.f + borderwidth,  (CENTER * BG_TILE_WIDTH + m_ImageSize.y - imgPixel.y) - SELECT_PXL_SIZE / 4.f - 1.f + borderwidth }, { SELECT_PXL_SIZE * boarderFac, SELECT_PXL_SIZE * boarderFac }, { 0.f, 0.f, 0.f, 0.5f });
+			}
+			
+			m_PixelRenderer.AddQuad({ CENTER * BG_TILE_WIDTH + imgPixel.x - SELECT_PXL_SIZE / 4.f,  (CENTER * BG_TILE_WIDTH + m_ImageSize.y - imgPixel.y) - SELECT_PXL_SIZE / 4.f - 1.f }, { SELECT_PXL_SIZE, SELECT_PXL_SIZE }, rgb);
+
+			m_PixelRenderer.Draw();
+		}
+	}
+}
+
+void Mapper::saveImage(const std::string& path)
+{
+	m_ImageRenderer.SaveAsFile(path + "abc.png", 0);
 }
 
 void Mapper::ProcessMouse(GLFWwindow* window)
@@ -200,7 +289,7 @@ void Mapper::OnScrollCallback(GLFWwindow* window, double xpos, double ypos)
 
 void Mapper::loadImage(const std::string& path)
 {
-	m_OperationImage = Helper::Sprite(path, { 0.f, 0.f }, { 0.f, 0.f });
+	m_OperationImage = Helper::Sprite(path, { 0.f, 0.f }, { 0.f, 0.f }, m_Flipped);
 	Helper::ImageInformation information = m_OperationImage.getImageInformation();
 
 	if (information.Size.x <= 7680 && information.Size.y <= 7680) {
@@ -210,7 +299,7 @@ void Mapper::loadImage(const std::string& path)
 		m_OperationImage.Position.x = CENTER * BG_TILE_WIDTH;
 		m_OperationImage.Position.y = BG_TILE_WIDTH * CENTER;
 
-		m_ImageRenderer.AddSprite(m_OperationImage);
+		m_OperationImage.Id = m_ImageRenderer.AddSprite(m_OperationImage);
 
 		m_DynamicViewBorder = information.Size + glm::ivec2(100.f, 100.f);
 

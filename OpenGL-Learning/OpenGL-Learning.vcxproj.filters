@@ -78,6 +78,9 @@
     <ClCompile Include="src\mapper\core\Mapper.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="src\vendor\stb_image\stb_image_write.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\vendor\glm\detail\func_common.inl">
@@ -1418,6 +1421,9 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="src\mapper\helper\Helper.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vendor\stb_image\stb_image_write.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
