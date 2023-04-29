@@ -1,14 +1,15 @@
-# OpenGL-Template for VS22 / VS17
-A basic OpenGL Project solution build in VS22.
-* Using GLEW for linking the OpenGL specifications
-* Using GLFW for window handling
+# UV-Mapper for partial selections of Images
+This application allows you to select areas of images and generate UV-cordinates ranging from 0.0 - 1.0 including code that can be directly used in OpenGL/Vulcan/etc. -Code. 
 
-### Additions
-This template includes an OpenGL wrapper project *OpenGL_util*.
-+ Dear ImGui
-+ Dynamic Logging System
-+ YAML-Support
-+ STB-Image
+## Features
+* Loading of jpg, png, bmp, tga, hdr images
+* Pixel-Grid for better orientation
+* Dynamic zoom
+* Ability to save current image as PNG
+* Flip image including UV-Coordinates
+* Pixel Preview
+* Automatic code generation
 
-## How to use
-Some library files are missing, you can download them here: https://bib926-my.sharepoint.com/:f:/g/personal/timm_schmidt_edu_fhdw_de/EqxN2gkPWflGpomapFEDPFoB5wxrQKibWz2gnenIiFlwww?e=HgQrqi
+## Screenshots
+![](https://github.com/timmy0811/UV-Mapper/blob/main/img1.png?raw=true)
+![](https://github.com/timmy0811/UV-Mapper/blob/main/img0.png?raw=true)
