@@ -333,7 +333,7 @@ namespace Helper {
 			return AddSprite(sprite.Path, sprite.Position, sprite.Size, sprite.Uvs, sprite.FlipUvs, incrementPorts);
 		}
 
-		void SaveAsFile(const std::string& path, int index){
+		void SaveAsFile(const std::string& path, int index) {
 			int w = textures[index]->GetWidth();
 			int h = textures[index]->GetHeight();
 			int c = textures[index]->GetChannels();
@@ -705,7 +705,6 @@ namespace Helper {
 			vb->AddVertexData(verts, sizeof(LineVertex) * 4);
 			triangles += 2;
 		}
-
 
 		~QuadRenderer() {
 			delete shader;

@@ -22,6 +22,7 @@
 class Mapper
 {
 private:
+	// Renderer
 	Helper::LineRenderer m_LineRenderer;
 	Helper::LineRenderer m_ImageBorderRenderer;
 	Helper::LineRenderer m_GridRenderer;
@@ -31,23 +32,27 @@ private:
 	Helper::QuadRenderer m_PixelRenderer;
 
 	Helper::SpriteRenderer m_ImageRenderer;
+
+	// Image
+	Helper::Sprite m_OperationImage;
 	glm::vec2 m_ImageSize;
 
+	// States
 	bool m_ImageOpen;
-	float m_GridAlphaMax = 1.f;
-	float m_GridAlpha;
+	bool m_InTranslationMode;
+
 	bool m_Flipped;
 	bool m_LastFlippedState;
 
+	float m_GridAlphaMax = 1.f;
+	float m_GridAlpha;
+
 	nfdchar_t* m_WorkingPath = new char[200];
 
-	Helper::Sprite m_OperationImage;
-
+	// View
 	glm::vec2 m_ViewOffset;
 	glm::mat4 m_Projection;
 	inline static float m_Zoom;
-
-	bool m_InTranslationMode;
 
 	glm::vec2 m_DynamicViewBorder = { 1000.f, 1000.f };
 
@@ -61,6 +66,7 @@ private:
 	static void OnMouseCallback(GLFWwindow* window, double xpos, double ypos);
 	static void OnScrollCallback(GLFWwindow* window, double xpos, double ypos);
 
+	void DiscardImage();
 	void loadImage(const std::string& path);
 	void saveImage(const std::string& path);
 	void addGuideLines();
@@ -76,4 +82,3 @@ public:
 	void OnGuiRender();
 	void OnInput(GLFWwindow* window);
 };
-

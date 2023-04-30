@@ -29,10 +29,14 @@ void Mapper::OnUpdate()
 {
 	static float zoom = 0.5f;
 	zoom += 0.1f * (1.f / 60.f);
+
+	// Apply Transforms
 	m_LineRenderer.shader->Bind();
 	m_LineRenderer.shader->SetUniformMat4f("u_MVP", m_Projection * glm::scale(glm::mat4(1.f), glm::vec3(m_Zoom)) * glm::translate(glm::mat4(1.f), glm::vec3(m_ViewOffset, 0.f)));
+
 	m_ImageBorderRenderer.shader->Bind();
 	m_ImageBorderRenderer.shader->SetUniformMat4f("u_MVP", m_Projection * glm::scale(glm::mat4(1.f), glm::vec3(m_Zoom)) * glm::translate(glm::mat4(1.f), glm::vec3(m_ViewOffset, 0.f)));
+
 	m_GridRenderer.shader->Bind();
 	m_GridRenderer.shader->SetUniform1f("u_TexelWidth", 1.f);
 	glm::mat4 m = m_Projection * glm::scale(glm::mat4(1.f), glm::vec3(m_Zoom)) * glm::translate(glm::mat4(1.f), glm::vec3(m_ViewOffset, 0.f));
@@ -44,23 +48,26 @@ void Mapper::OnUpdate()
 	m_FontRenderer.SetTranslation({ m_ViewOffset.x, m_ViewOffset.y, 0.f }, glm::vec3(m_Zoom));
 	m_ImageRenderer.SetTranslation({ m_ViewOffset.x, m_ViewOffset.y, 0.f }, glm::vec3(m_Zoom));
 
+	// Fade Grid
 	float fac = std::clamp((float)((m_Zoom - 3.f) / (ZOOM_MAX_IN / 2.f)), 0.f, 1.f);
 	m_GridAlpha = fac * m_GridAlphaMax;
 }
 
 void Mapper::OnRender()
 {
-	float width = std::ceil((DIST_TO_CANVAS + m_DynamicViewBorder.x + conf.WIN_WIDTH + BG_TILE_WIDTH) / BG_TILE_WIDTH);
-	float height = std::ceil((DIST_TO_CANVAS + m_DynamicViewBorder.y + conf.WIN_HEIGHT) / BG_TILE_WIDTH);
-	size_t count = width * height;
+	// Render Instanced Background
+	float countBGTilesX = std::ceil((DIST_TO_CANVAS + m_DynamicViewBorder.x + conf.WIN_WIDTH + BG_TILE_WIDTH) / BG_TILE_WIDTH);
+	float countBGTilesY = std::ceil((DIST_TO_CANVAS + m_DynamicViewBorder.y + conf.WIN_HEIGHT) / BG_TILE_WIDTH);
+	size_t count = countBGTilesX * countBGTilesY;
 
 	m_BackgroundRenderer.getShaderPtr()->Bind();
-	m_BackgroundRenderer.getShaderPtr()->SetUniform1f("u_WidthTiles", width);
+	m_BackgroundRenderer.getShaderPtr()->SetUniform1f("u_WidthTiles", countBGTilesX);
 
 	m_BackgroundRenderer.DrawInstanced(count);
 	m_FontRenderer.Draw();
 	m_ImageRenderer.Draw();
 
+	// Render Grid
 	if (m_ImageOpen && m_Zoom > 3.f) {
 		m_GridRenderer.shader->Bind();
 
@@ -86,16 +93,13 @@ void Mapper::OnRender()
 void Mapper::OnGuiRender()
 {
 	if (m_ImageRenderer.getCount() == 0) {
-		/*ImGui::PushStyleColor(ImGuiCol_TitleBg, { 0.8f, 0.1f, 0.1f, 1.f });
-		ImGui::PushStyleColor(ImGuiCol_TitleBgActive, {0.9f, 0.2f, 0.2f, 1.f});*/
-
 		float w = 450.f, h = 80.f;
 		ImGui::SetNextWindowSize({ w, h });
 		ImGui::SetNextWindowPos({ (float)conf.WIN_WIDTH / 2.f - w / 2.f, (float)conf.WIN_HEIGHT / 2.f - h / 2.f });
 
 		ImGui::Begin("Load an image!");
 		ImGui::Text("Load an Image (jpg,png,bmp,tga,hdr) to continue.\nmax resolution: 7.680 x 7.680");
-		
+
 		if (ImGui::Button("Select and Load")) {
 			nfdchar_t* outPath = NULL;
 			nfdresult_t result = NFD_OpenDialog("jpg,png,bmp,tga,hdr", NULL, &outPath);
@@ -117,7 +121,6 @@ void Mapper::OnGuiRender()
 		ImGui::Checkbox("Flip", &m_Flipped);
 
 		ImGui::End();
-		/*ImGui::PopStyleColor(2);*/
 	}
 	else {
 		ImGui::SetNextWindowSize({ (float)conf.WIN_WIDTH / 3.5f, (float)conf.WIN_HEIGHT });
@@ -156,7 +159,7 @@ void Mapper::OnGuiRender()
 					printf("Error: %s\n", NFD_GetError());
 				}
 			}
-			ImGui::Text(outPath == nullptr ||outPath == NULL || *outPath == '_' || std::strlen(outPath) <= 0 ? "No path selected!" : outPath);
+			ImGui::Text(outPath == NULL || *outPath == '_' || std::strlen(outPath) <= 0 ? "No path selected!" : outPath);
 
 			static std::string msg = "";
 
@@ -170,9 +173,14 @@ void Mapper::OnGuiRender()
 				}
 				else {
 					msg = "This is not a valid path!";
-				}			
+				}
 			}
 			ImGui::Text(msg.c_str());
+
+			ImGui::Separator();
+			if (ImGui::Button("Discard current session")) {
+				DiscardImage();
+			}
 		}
 		ImGui::End();
 	}
@@ -180,7 +188,7 @@ void Mapper::OnGuiRender()
 
 void Mapper::OnInput(GLFWwindow* window)
 {
-	if (m_ImageRenderer.getCount() > 0) {
+	if (m_ImageOpen) {
 		glfwGetCursorPos(window, &s_MouseX, &s_MouseY);
 		glfwSetScrollCallback(window, OnScrollCallback);
 		ProcessMouse(window);
@@ -195,7 +203,7 @@ void Mapper::drawSelectPixel()
 
 		mouse -= CENTER * BG_TILE_WIDTH * m_Zoom + m_ViewOffset * m_Zoom;
 		imgPixel = { std::floor(mouse.x / m_Zoom), m_ImageSize.y - std::ceil(mouse.y / m_Zoom) };
-		if (imgPixel.x < m_ImageSize.x && imgPixel.y < m_ImageSize.y && imgPixel.x >= 0.f && imgPixel.y >= 0.f ) {
+		if (imgPixel.x < m_ImageSize.x && imgPixel.y < m_ImageSize.y && imgPixel.x >= 0.f && imgPixel.y >= 0.f) {
 			glm::vec4 rgb = m_ImageRenderer.getLastImageRGB(imgPixel);
 			m_PixelRenderer.Empty();
 
@@ -204,7 +212,7 @@ void Mapper::drawSelectPixel()
 				float borderwidth = (SELECT_PXL_SIZE - SELECT_PXL_SIZE * boarderFac) / 2.f;
 				m_PixelRenderer.AddQuad({ CENTER * BG_TILE_WIDTH + imgPixel.x - SELECT_PXL_SIZE / 4.f + borderwidth,  (CENTER * BG_TILE_WIDTH + m_ImageSize.y - imgPixel.y) - SELECT_PXL_SIZE / 4.f - 1.f + borderwidth }, { SELECT_PXL_SIZE * boarderFac, SELECT_PXL_SIZE * boarderFac }, { 0.f, 0.f, 0.f, 0.5f });
 			}
-			
+
 			m_PixelRenderer.AddQuad({ CENTER * BG_TILE_WIDTH + imgPixel.x - SELECT_PXL_SIZE / 4.f,  (CENTER * BG_TILE_WIDTH + m_ImageSize.y - imgPixel.y) - SELECT_PXL_SIZE / 4.f - 1.f }, { SELECT_PXL_SIZE, SELECT_PXL_SIZE }, rgb);
 
 			m_PixelRenderer.Draw();
@@ -212,9 +220,55 @@ void Mapper::drawSelectPixel()
 	}
 }
 
+void Mapper::DiscardImage()
+{
+	m_ImageRenderer.RemoveAllSprites();
+	m_GridRenderer.vb->Empty();
+
+	m_Zoom = 0.f;
+	m_ViewOffset = { 0.f, 0.f };
+	m_ImageOpen = false;
+}
+
+void Mapper::loadImage(const std::string& path)
+{
+	m_OperationImage = Helper::Sprite(path, { 0.f, 0.f }, { 0.f, 0.f }, m_Flipped);
+	Helper::ImageInformation information = m_OperationImage.getImageInformation();
+
+	if (information.Size.x <= 7680 && information.Size.y <= 7680) {
+		m_OperationImage.Size.x = information.Size.x;
+		m_OperationImage.Size.y = information.Size.y;
+
+		m_OperationImage.Position.x = CENTER * BG_TILE_WIDTH;
+		m_OperationImage.Position.y = BG_TILE_WIDTH * CENTER;
+
+		m_OperationImage.Id = m_ImageRenderer.AddSprite(m_OperationImage);
+
+		m_DynamicViewBorder = information.Size + glm::ivec2(100.f, 100.f);
+
+		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH }, { CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH + information.Size.y }, { 1.f, 1.f, 1.f, 0.5f });
+		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH + information.Size.y }, { CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH + information.Size.y }, { 1.f, 1.f, 1.f, 0.5f });
+
+		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH }, { CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH }, { 1.f, 1.f, 1.f, 0.5f });
+		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH }, { CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH + information.Size.y }, { 1.f, 1.f, 1.f, 0.5f });
+
+		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH + information.Size.x - 10.f, CENTER * BG_TILE_WIDTH + information.Size.y }, { CENTER * BG_TILE_WIDTH + information.Size.x + 10.f, CENTER * BG_TILE_WIDTH + information.Size.y }, { 0.f, 0.9f, 1.f, 0.8f });
+		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH + information.Size.y - 10.f }, { CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH + information.Size.y + 10.f }, { 1.f, 0.0f, 0.8f, 0.8f });
+
+		m_ImageSize = information.Size;
+		m_ImageOpen = true;
+	}
+}
+
+void Mapper::addGuideLines()
+{
+	m_LineRenderer.AddLine({ -1000.f, CENTER * BG_TILE_WIDTH }, { 10000.f, CENTER * BG_TILE_WIDTH }, { 1.f, 0.1f, 0.1f, 1.f });
+	m_LineRenderer.AddLine({ CENTER * BG_TILE_WIDTH, -1000.f }, { CENTER * BG_TILE_WIDTH, 10000.f }, { 0.2f, 0.2f, 1.f, 1.f });
+}
+
 void Mapper::saveImage(const std::string& path)
 {
-	m_ImageRenderer.SaveAsFile(path + "abc.png", 0);
+	m_ImageRenderer.SaveAsFile(path.substr(0, path.size() - 4) + "_exported.png", 0);
 }
 
 void Mapper::ProcessMouse(GLFWwindow* window)
@@ -285,40 +339,4 @@ void Mapper::OnScrollCallback(GLFWwindow* window, double xpos, double ypos)
 
 	m_Zoom = std::max(0.4f, m_Zoom);
 	m_Zoom = std::min(ZOOM_MAX_IN, m_Zoom);
-}
-
-void Mapper::loadImage(const std::string& path)
-{
-	m_OperationImage = Helper::Sprite(path, { 0.f, 0.f }, { 0.f, 0.f }, m_Flipped);
-	Helper::ImageInformation information = m_OperationImage.getImageInformation();
-
-	if (information.Size.x <= 7680 && information.Size.y <= 7680) {
-		m_OperationImage.Size.x = information.Size.x;
-		m_OperationImage.Size.y = information.Size.y;
-
-		m_OperationImage.Position.x = CENTER * BG_TILE_WIDTH;
-		m_OperationImage.Position.y = BG_TILE_WIDTH * CENTER;
-
-		m_OperationImage.Id = m_ImageRenderer.AddSprite(m_OperationImage);
-
-		m_DynamicViewBorder = information.Size + glm::ivec2(100.f, 100.f);
-
-		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH }, { CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH + information.Size.y }, { 1.f, 1.f, 1.f, 0.5f });
-		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH + information.Size.y }, { CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH + information.Size.y }, { 1.f, 1.f, 1.f, 0.5f });
-
-		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH }, { CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH }, { 1.f, 1.f, 1.f, 0.5f });
-		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH }, { CENTER * BG_TILE_WIDTH, CENTER * BG_TILE_WIDTH + information.Size.y }, { 1.f, 1.f, 1.f, 0.5f });
-
-		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH + information.Size.x - 10.f, CENTER * BG_TILE_WIDTH + information.Size.y }, { CENTER * BG_TILE_WIDTH + information.Size.x + 10.f, CENTER * BG_TILE_WIDTH + information.Size.y }, { 0.f, 0.9f, 1.f, 0.8f });
-		m_ImageBorderRenderer.AddLine({ CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH + information.Size.y - 10.f }, { CENTER * BG_TILE_WIDTH + information.Size.x, CENTER * BG_TILE_WIDTH + information.Size.y + 10.f }, { 1.f, 0.0f, 0.8f, 0.8f });
-
-		m_ImageSize = information.Size;
-		m_ImageOpen = true;
-	}
-}
-
-void Mapper::addGuideLines()
-{
-	m_LineRenderer.AddLine({ -1000.f, CENTER * BG_TILE_WIDTH }, { 10000.f, CENTER * BG_TILE_WIDTH }, { 1.f, 0.1f, 0.1f, 1.f });
-	m_LineRenderer.AddLine({ CENTER * BG_TILE_WIDTH, -1000.f }, { CENTER * BG_TILE_WIDTH, 10000.f }, { 0.2f, 0.2f, 1.f, 1.f });
 }
