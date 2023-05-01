@@ -2,6 +2,7 @@
 
 Mapper::Mapper()
 	:m_BackgroundRenderer(1, "res/shader/sprite/shader_sprite_bg.vert", "res/shader/sprite/shader_sprite_bg.frag"),
+	m_SelectionRenderer(12, "res/shader/line/shader_single_color.vert", "res/shader/line/shader_single_color.frag"),
 	m_LineRenderer(2, "res/shader/line/shader_single_color.vert", "res/shader/line/shader_single_color.frag"),
 	m_ImageBorderRenderer(6, "res/shader/line/shader_single_color.vert", "res/shader/line/shader_single_color.frag"),
 	m_GridRenderer(1, "res/shader/line/shader_single_color_instanced.vert", "res/shader/line/shader_single_color.frag"),
@@ -16,7 +17,7 @@ Mapper::Mapper()
 
 	addGuideLines();
 
-	m_FontRenderer.PrintMultilineText("(0.0, 0.0)", { CENTER * BG_TILE_WIDTH + 15.f, conf.WIN_HEIGHT - CENTER * BG_TILE_WIDTH + FONT_SIZE * 12.f }, FONT_SIZE, { 0.15, 0.15, 0.15, 0.5f });
+	m_FontRenderer.PrintMultilineText("(0.0, 0.0)", { CENTER * BG_TILE_WIDTH + 20.f, CENTER * BG_TILE_WIDTH - FONT_SIZE * 25.f }, FONT_SIZE, { 0.15, 0.15, 0.15, 0.5f });
 	m_Zoom = 1.f;
 }
 
@@ -36,6 +37,9 @@ void Mapper::OnUpdate()
 
 	m_ImageBorderRenderer.shader->Bind();
 	m_ImageBorderRenderer.shader->SetUniformMat4f("u_MVP", m_Projection * glm::scale(glm::mat4(1.f), glm::vec3(m_Zoom)) * glm::translate(glm::mat4(1.f), glm::vec3(m_ViewOffset, 0.f)));
+
+	m_SelectionRenderer.shader->Bind();
+	m_SelectionRenderer.shader->SetUniformMat4f("u_MVP", m_Projection * glm::scale(glm::mat4(1.f), glm::vec3(m_Zoom)) * glm::translate(glm::mat4(1.f), glm::vec3(m_ViewOffset, 0.f)));
 
 	m_GridRenderer.shader->Bind();
 	m_GridRenderer.shader->SetUniform1f("u_TexelWidth", 1.f);
@@ -68,7 +72,7 @@ void Mapper::OnRender()
 	m_ImageRenderer.Draw();
 
 	// Render Grid
-	if (m_ImageOpen && m_Zoom > 3.f) {
+	if (m_ImageOpen && m_Zoom > 3.f && m_EnableGrid) {
 		m_GridRenderer.shader->Bind();
 
 		// Horizontal
@@ -87,7 +91,16 @@ void Mapper::OnRender()
 	m_LineRenderer.Draw(3.f);
 	m_ImageBorderRenderer.Draw();
 
-	drawSelectPixel();
+	m_SelectionRenderer.Draw(2.f);
+
+	static bool drawNext = false;
+	if (!m_InTranslationMode && drawNext) drawSelectPixel();
+
+	if (!m_InTranslationMode) drawNext = true;
+	else {
+		m_PixelRenderer.Empty();
+		drawNext = false;
+	}
 }
 
 void Mapper::OnGuiRender()
@@ -129,6 +142,8 @@ void Mapper::OnGuiRender()
 
 		ImGui::Begin("Attributes");
 		if (ImGui::CollapsingHeader("Image", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::Checkbox("Show Grid", &m_EnableGrid);
+
 			m_LastFlippedState = m_Flipped;
 			ImGui::Checkbox("Flip Uvs", &m_Flipped);
 			if (m_Flipped != m_LastFlippedState && m_Flipped) {
@@ -144,7 +159,7 @@ void Mapper::OnGuiRender()
 		}
 
 		if (ImGui::CollapsingHeader("Reload and Discard", ImGuiTreeNodeFlags_DefaultOpen)) {
-			ImGui::Text("Save image as PNG: ");
+			ImGui::Text("Save image as PNG:");
 			ImGui::SameLine(0.f, 100.f);
 
 			static nfdchar_t* outPath = NULL;
@@ -179,7 +194,7 @@ void Mapper::OnGuiRender()
 
 			ImGui::Separator();
 			if (ImGui::Button("Discard current session")) {
-				DiscardImage();
+				discardImage();
 			}
 		}
 		ImGui::End();
@@ -192,6 +207,8 @@ void Mapper::OnInput(GLFWwindow* window)
 		glfwGetCursorPos(window, &s_MouseX, &s_MouseY);
 		glfwSetScrollCallback(window, OnScrollCallback);
 		ProcessMouse(window);
+
+		handleSelection(window);
 	}
 }
 
@@ -203,6 +220,7 @@ void Mapper::drawSelectPixel()
 
 		mouse -= CENTER * BG_TILE_WIDTH * m_Zoom + m_ViewOffset * m_Zoom;
 		imgPixel = { std::floor(mouse.x / m_Zoom), m_ImageSize.y - std::ceil(mouse.y / m_Zoom) };
+		m_CurrentPixel = imgPixel;
 		if (imgPixel.x < m_ImageSize.x && imgPixel.y < m_ImageSize.y && imgPixel.x >= 0.f && imgPixel.y >= 0.f) {
 			glm::vec4 rgb = m_ImageRenderer.getLastImageRGB(imgPixel);
 			m_PixelRenderer.Empty();
@@ -210,17 +228,77 @@ void Mapper::drawSelectPixel()
 			if (rgb.a > 0.1f) {
 				constexpr float boarderFac = 1.1f;
 				float borderwidth = (SELECT_PXL_SIZE - SELECT_PXL_SIZE * boarderFac) / 2.f;
-				m_PixelRenderer.AddQuad({ CENTER * BG_TILE_WIDTH + imgPixel.x - SELECT_PXL_SIZE / 4.f + borderwidth,  (CENTER * BG_TILE_WIDTH + m_ImageSize.y - imgPixel.y) - SELECT_PXL_SIZE / 4.f - 1.f + borderwidth }, { SELECT_PXL_SIZE * boarderFac, SELECT_PXL_SIZE * boarderFac }, { 0.f, 0.f, 0.f, 0.5f });
+
+				glm::vec4 borderCol = m_CurrentPixel == m_Selection0 || m_CurrentPixel == m_Selection1 ? glm::vec4(1.f, 0.f, 0.f, 1.f) : glm::vec4(0.f, 0.f, 0.f, 0.5f);
+
+				m_PixelRenderer.AddQuad({ CENTER * BG_TILE_WIDTH + imgPixel.x - SELECT_PXL_SIZE / 4.f + borderwidth,  (CENTER * BG_TILE_WIDTH + m_ImageSize.y - imgPixel.y) - SELECT_PXL_SIZE / 4.f - 1.f + borderwidth }, { SELECT_PXL_SIZE * boarderFac, SELECT_PXL_SIZE * boarderFac }, borderCol);
 			}
 
 			m_PixelRenderer.AddQuad({ CENTER * BG_TILE_WIDTH + imgPixel.x - SELECT_PXL_SIZE / 4.f,  (CENTER * BG_TILE_WIDTH + m_ImageSize.y - imgPixel.y) - SELECT_PXL_SIZE / 4.f - 1.f }, { SELECT_PXL_SIZE, SELECT_PXL_SIZE }, rgb);
 
 			m_PixelRenderer.Draw();
 		}
+		else {
+			m_PixelRenderer.Empty();
+			m_PixelRenderer.Draw();
+		}
 	}
 }
 
-void Mapper::DiscardImage()
+void Mapper::handleSelection(GLFWwindow* window)
+{
+	glm::vec2 pixelpos = { CENTER * BG_TILE_WIDTH + m_CurrentPixel.x, (CENTER * BG_TILE_WIDTH + m_ImageSize.y - m_CurrentPixel.y) - 1.f };
+
+	static bool keyPressed1 = false;
+	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && !keyPressed1)
+	{
+		keyPressed1 = true;
+		m_InSelectionMode = true;
+
+		m_Selection0 = m_CurrentPixel;
+
+		m_SelectionRenderer.vb->Empty();
+		m_SelectionRenderer.AddLine(pixelpos + glm::vec2(0.f, 0.f), pixelpos + glm::vec2(1.f, 0.f), { 1.f, 0.f, 0.f, 1.f });
+		m_SelectionRenderer.AddLine(pixelpos + glm::vec2(1.f, 0.f), pixelpos + glm::vec2(1.f, 1.f), { 1.f, 0.f, 0.f, 1.f });
+		m_SelectionRenderer.AddLine(pixelpos + glm::vec2(1.f, 1.f), pixelpos + glm::vec2(0.f, 1.f), { 1.f, 0.f, 0.f, 1.f });
+		m_SelectionRenderer.AddLine(pixelpos + glm::vec2(0.f, 0.f), pixelpos + glm::vec2(0.f, 1.f), { 1.f, 0.f, 0.f, 1.f });
+	}
+	else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE && keyPressed1) {
+		keyPressed1 = false;
+		m_InSelectionMode = false;
+
+		m_Selection1 = m_CurrentPixel;
+
+		m_SelectionRenderer.AddLine(pixelpos + glm::vec2(0.f, 0.f), pixelpos + glm::vec2(1.f, 0.f), { 1.f, 0.f, 0.f, 1.f });
+		m_SelectionRenderer.AddLine(pixelpos + glm::vec2(1.f, 0.f), pixelpos + glm::vec2(1.f, 1.f), { 1.f, 0.f, 0.f, 1.f });
+		m_SelectionRenderer.AddLine(pixelpos + glm::vec2(1.f, 1.f), pixelpos + glm::vec2(0.f, 1.f), { 1.f, 0.f, 0.f, 1.f });
+		m_SelectionRenderer.AddLine(pixelpos + glm::vec2(0.f, 0.f), pixelpos + glm::vec2(0.f, 1.f), { 1.f, 0.f, 0.f, 1.f });
+
+		return;
+	}
+
+	if (m_InSelectionMode) {
+		m_Selection1 = m_CurrentPixel;
+		glm::vec2 pixelposSel0 = { CENTER * BG_TILE_WIDTH + m_Selection0.x, (CENTER * BG_TILE_WIDTH + m_ImageSize.y - m_Selection0.y) - 1.f };
+
+		m_SelectionRenderer.vb->SetDataPtr(4 * sizeof(Helper::LineVertex));
+
+		if (m_Selection1.x <= m_Selection0.x && m_Selection1.y <= m_Selection0.y) {
+			m_SelectionRenderer.AddLine(pixelposSel0 + glm::vec2(1.f, 0.f), { pixelpos.x, pixelposSel0.y }, { 1.f, 0.f, 0.f, 1.f });	// Bottom
+			m_SelectionRenderer.AddLine({ pixelpos.x, pixelposSel0.y }, pixelpos + glm::vec2(0.f, 1.f), { 1.f, 0.f, 0.f, 1.f });		// Left
+			m_SelectionRenderer.AddLine(pixelposSel0 + glm::vec2(1.f, 0.f), { pixelposSel0.x + 1.f, pixelpos.y + 1.f }, { 1.f, 0.f, 0.f, 1.f });	// Right
+			m_SelectionRenderer.AddLine({ pixelposSel0.x + 1.f, pixelpos.y + 1.f }, pixelpos + glm::vec2(0.f, 1.f), { 1.f, 0.f, 0.f, 1.f });		// Top
+		}
+		else if (m_Selection1.x > m_Selection0.x && m_Selection1.y <= m_Selection0.y) {
+		}
+		else if (m_Selection1.x <= m_Selection0.x && m_Selection1.y > m_Selection0.y) {
+		}
+		else if (m_Selection1.x > m_Selection0.x && m_Selection1.y > m_Selection0.y) {
+		}
+	}
+}
+
+void Mapper::discardImage()
 {
 	m_ImageRenderer.RemoveAllSprites();
 	m_GridRenderer.vb->Empty();
@@ -257,6 +335,11 @@ void Mapper::loadImage(const std::string& path)
 
 		m_ImageSize = information.Size;
 		m_ImageOpen = true;
+
+		// Auto zoom to image
+		m_Zoom = (conf.WIN_HEIGHT - CENTER * BG_TILE_WIDTH - conf.WIN_HEIGHT / 8.f) / m_OperationImage.Size.y;
+		m_ViewOffset.y += -(CENTER * BG_TILE_WIDTH * 0.2) * m_Zoom;
+		m_ViewOffset.x += -(CENTER * BG_TILE_WIDTH * 0.2) * m_Zoom;
 	}
 }
 

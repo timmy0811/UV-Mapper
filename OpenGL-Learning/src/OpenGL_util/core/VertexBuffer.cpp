@@ -33,6 +33,11 @@ void VertexBuffer::AddVertexData(const void* data, int size) {
 	m_DataPtr += size;
 }
 
+void VertexBuffer::SetDataPtr(size_t ptr)
+{
+	m_DataPtr = ptr;
+}
+
 void VertexBuffer::Empty()
 {
 	Bind();
@@ -166,10 +171,10 @@ void VertexBuffer::addCubeN(glm::vec3 position, float sideLength, glm::vec4 colo
 	// Left
 	addPolyN(glm::vec3(position.x + sideLength, position.y - (sideLength / 2.f), position.z + sideLength), glm::vec3(position.x + sideLength, position.y - (sideLength / 2.f), position.z - (sideLength / 2.f)), glm::vec3(position.x + sideLength, position.y + sideLength, position.z + sideLength), glm::vec2(0.f, 0.f), glm::vec2(1.f, 0.f), glm::vec2(0.f, 1.f), color, texId, vb);
 	addPolyN(glm::vec3(position.x + sideLength, position.y + sideLength, position.z + sideLength), glm::vec3(position.x + sideLength, position.y - (sideLength / 2.f), position.z - (sideLength / 2.f)), glm::vec3(position.x + sideLength, position.y + sideLength, position.z - (sideLength / 2.f)), glm::vec2(0.f, 1.f), glm::vec2(1.f, 0.f), glm::vec2(1.f, 1.f), color, texId, vb);
-	// Top 
+	// Top
 	addPolyN(glm::vec3(position.x + sideLength, position.y + sideLength, position.z - (sideLength / 2.f)), glm::vec3(position.x - (sideLength / 2.f), position.y + sideLength, position.z - (sideLength / 2.f)), glm::vec3(position.x + sideLength, position.y + sideLength, position.z + sideLength), glm::vec2(1.f, 1.f), glm::vec2(0.f, 1.f), glm::vec2(1.f, 0.f), color, texId, vb);
 	addPolyN(glm::vec3(position.x - (sideLength / 2.f), position.y + sideLength, position.z - (sideLength / 2.f)), glm::vec3(position.x - (sideLength / 2.f), position.y + sideLength, position.z + sideLength), glm::vec3(position.x + sideLength, position.y + sideLength, position.z + sideLength), glm::vec2(0.f, 1.f), glm::vec2(0.f, 0.f), glm::vec2(1.f, 0.f), color, texId, vb);
-	// Back 
+	// Back
 	addPolyN(glm::vec3(position.x - (sideLength / 2.f), position.y - (sideLength / 2.f), position.z + sideLength), glm::vec3(position.x + sideLength, position.y - (sideLength / 2.f), position.z + sideLength), glm::vec3(position.x - (sideLength / 2.f), position.y + sideLength, position.z + sideLength), glm::vec2(0.f, 0.f), glm::vec2(1.f, 0.f), glm::vec2(0.f, 1.f), color, texId, vb);
 	addPolyN(glm::vec3(position.x + sideLength, position.y - (sideLength / 2.f), position.z + sideLength), glm::vec3(position.x + sideLength, position.y + sideLength, position.z + sideLength), glm::vec3(position.x - (sideLength / 2.f), position.y + sideLength, position.z + sideLength), glm::vec2(1.f, 0.f), glm::vec2(1.f, 1.f), glm::vec2(0.f, 1.f), color, texId, vb);
 }

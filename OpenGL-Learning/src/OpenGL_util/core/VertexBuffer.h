@@ -20,6 +20,8 @@ public:
 	void AddVertexData(const void* data, int size, int offset);
 	void AddVertexData(const void* data, int size);
 
+	void SetDataPtr(size_t ptr);
+
 	void Empty();
 
 	static void addPoly(glm::vec3 pos0, glm::vec3 pos1, glm::vec3 pos2, glm::vec2 texPos0, glm::vec2 texPos1, glm::vec2 texPos2, glm::vec4 color, float texId, VertexBuffer& vb);

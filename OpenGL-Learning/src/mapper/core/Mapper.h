@@ -23,6 +23,8 @@ class Mapper
 {
 private:
 	// Renderer
+	Helper::LineRenderer m_SelectionRenderer;
+
 	Helper::LineRenderer m_LineRenderer;
 	Helper::LineRenderer m_ImageBorderRenderer;
 	Helper::LineRenderer m_GridRenderer;
@@ -38,8 +40,10 @@ private:
 	glm::vec2 m_ImageSize;
 
 	// States
+	bool m_InSelectionMode;
 	bool m_ImageOpen;
 	bool m_InTranslationMode;
+	bool m_EnableGrid = true;
 
 	bool m_Flipped;
 	bool m_LastFlippedState;
@@ -48,6 +52,12 @@ private:
 	float m_GridAlpha;
 
 	nfdchar_t* m_WorkingPath = new char[200];
+
+	// Selection
+	glm::vec2 m_Selection0;
+	glm::vec2 m_Selection1;
+
+	glm::vec2 m_CurrentPixel;
 
 	// View
 	glm::vec2 m_ViewOffset;
@@ -66,12 +76,13 @@ private:
 	static void OnMouseCallback(GLFWwindow* window, double xpos, double ypos);
 	static void OnScrollCallback(GLFWwindow* window, double xpos, double ypos);
 
-	void DiscardImage();
+	void discardImage();
 	void loadImage(const std::string& path);
 	void saveImage(const std::string& path);
 	void addGuideLines();
 
 	void drawSelectPixel();
+	void handleSelection(GLFWwindow* window);
 
 public:
 	explicit Mapper();
