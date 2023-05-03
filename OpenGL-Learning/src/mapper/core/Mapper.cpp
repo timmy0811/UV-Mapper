@@ -91,7 +91,7 @@ void Mapper::OnRender()
 	m_LineRenderer.Draw(3.f);
 	m_ImageBorderRenderer.Draw();
 
-	m_SelectionRenderer.Draw(2.f);
+	m_SelectionRenderer.Draw(3.f);
 
 	static bool drawNext = false;
 	if (!m_InTranslationMode && drawNext) drawSelectPixel();
@@ -140,9 +140,17 @@ void Mapper::OnGuiRender()
 		ImGui::SetNextWindowBgAlpha(0.7f);
 		ImGui::SetNextWindowPos({ (float)conf.WIN_WIDTH - (float)conf.WIN_WIDTH / 3.5f, 0.f });
 
-		ImGui::Begin("Attributes");
-		if (ImGui::CollapsingHeader("Image", ImGuiTreeNodeFlags_DefaultOpen)) {
+		ImGui::Begin(("Scene: " + std::string(m_WorkingPath)).c_str());
+		if (ImGui::CollapsingHeader("View", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::Checkbox("Show Grid", &m_EnableGrid);
+			if (ImGui::Button("Reset View")) {
+				m_Zoom = 1.f;
+				m_ViewOffset = { 0.f, 0.f };
+			}
+			// ImGui::SameLine();
+			// ImGui::LabelText("Resets Zoom and Camera Transformations, use it if autozoom failed.", "?");
+		}
+		if (ImGui::CollapsingHeader("Image", ImGuiTreeNodeFlags_DefaultOpen)) {
 
 			m_LastFlippedState = m_Flipped;
 			ImGui::Checkbox("Flip Uvs", &m_Flipped);
@@ -155,6 +163,19 @@ void Mapper::OnGuiRender()
 				m_OperationImage.FlipUvs = false;
 				m_ImageRenderer.RemoveAllSprites();
 				m_OperationImage.Id = m_ImageRenderer.AddSprite(m_OperationImage, false);
+			}
+		}
+
+		if (ImGui::CollapsingHeader("Code Generation", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::Text("Here comes the configuration panel for code generation");
+			ImGui::Separator();
+			std::string codeGenerated = generateUVCode();
+			size_t size = codeGenerated.size();
+			loadStringToCodeBuffer(codeGenerated);
+			ImGui::InputTextMultiline(" ", m_CodeBuffer, size, ImVec2((float)conf.WIN_WIDTH / 3.5f - 20.f, 0.f), ImGuiInputTextFlags_ReadOnly);
+
+			if (ImGui::Button("Copy to Clipboard")) {
+				//copyToClipboard(m_CodeBuffer, size);
 			}
 		}
 
@@ -248,6 +269,7 @@ void Mapper::drawSelectPixel()
 void Mapper::handleSelection(GLFWwindow* window)
 {
 	glm::vec2 pixelpos = { CENTER * BG_TILE_WIDTH + m_CurrentPixel.x, (CENTER * BG_TILE_WIDTH + m_ImageSize.y - m_CurrentPixel.y) - 1.f };
+	constexpr glm::vec4 color = { 1.f, 0.f, 0.f, 1.f };
 
 	static bool keyPressed1 = false;
 	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && !keyPressed1)
@@ -256,12 +278,6 @@ void Mapper::handleSelection(GLFWwindow* window)
 		m_InSelectionMode = true;
 
 		m_Selection0 = m_CurrentPixel;
-
-		m_SelectionRenderer.vb->Empty();
-		m_SelectionRenderer.AddLine(pixelpos + glm::vec2(0.f, 0.f), pixelpos + glm::vec2(1.f, 0.f), { 1.f, 0.f, 0.f, 1.f });
-		m_SelectionRenderer.AddLine(pixelpos + glm::vec2(1.f, 0.f), pixelpos + glm::vec2(1.f, 1.f), { 1.f, 0.f, 0.f, 1.f });
-		m_SelectionRenderer.AddLine(pixelpos + glm::vec2(1.f, 1.f), pixelpos + glm::vec2(0.f, 1.f), { 1.f, 0.f, 0.f, 1.f });
-		m_SelectionRenderer.AddLine(pixelpos + glm::vec2(0.f, 0.f), pixelpos + glm::vec2(0.f, 1.f), { 1.f, 0.f, 0.f, 1.f });
 	}
 	else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE && keyPressed1) {
 		keyPressed1 = false;
@@ -269,10 +285,10 @@ void Mapper::handleSelection(GLFWwindow* window)
 
 		m_Selection1 = m_CurrentPixel;
 
-		m_SelectionRenderer.AddLine(pixelpos + glm::vec2(0.f, 0.f), pixelpos + glm::vec2(1.f, 0.f), { 1.f, 0.f, 0.f, 1.f });
-		m_SelectionRenderer.AddLine(pixelpos + glm::vec2(1.f, 0.f), pixelpos + glm::vec2(1.f, 1.f), { 1.f, 0.f, 0.f, 1.f });
-		m_SelectionRenderer.AddLine(pixelpos + glm::vec2(1.f, 1.f), pixelpos + glm::vec2(0.f, 1.f), { 1.f, 0.f, 0.f, 1.f });
-		m_SelectionRenderer.AddLine(pixelpos + glm::vec2(0.f, 0.f), pixelpos + glm::vec2(0.f, 1.f), { 1.f, 0.f, 0.f, 1.f });
+		m_SelectionRenderer.AddLine(pixelpos + glm::vec2(0.f, 0.f), pixelpos + glm::vec2(1.f, 0.f), color);
+		m_SelectionRenderer.AddLine(pixelpos + glm::vec2(1.f, 0.f), pixelpos + glm::vec2(1.f, 1.f), color);
+		m_SelectionRenderer.AddLine(pixelpos + glm::vec2(1.f, 1.f), pixelpos + glm::vec2(0.f, 1.f), color);
+		m_SelectionRenderer.AddLine(pixelpos + glm::vec2(0.f, 0.f), pixelpos + glm::vec2(0.f, 1.f), color);
 
 		return;
 	}
@@ -281,21 +297,48 @@ void Mapper::handleSelection(GLFWwindow* window)
 		m_Selection1 = m_CurrentPixel;
 		glm::vec2 pixelposSel0 = { CENTER * BG_TILE_WIDTH + m_Selection0.x, (CENTER * BG_TILE_WIDTH + m_ImageSize.y - m_Selection0.y) - 1.f };
 
-		m_SelectionRenderer.vb->SetDataPtr(4 * sizeof(Helper::LineVertex));
+		m_SelectionRenderer.vb->Empty();
+		m_SelectionRenderer.AddLine(pixelposSel0 + glm::vec2(0.f, 0.f), pixelposSel0 + glm::vec2(1.f, 0.f), color);
+		m_SelectionRenderer.AddLine(pixelposSel0 + glm::vec2(1.f, 0.f), pixelposSel0 + glm::vec2(1.f, 1.f), color);
+		m_SelectionRenderer.AddLine(pixelposSel0 + glm::vec2(1.f, 1.f), pixelposSel0 + glm::vec2(0.f, 1.f), color);
+		m_SelectionRenderer.AddLine(pixelposSel0 + glm::vec2(0.f, 0.f), pixelposSel0 + glm::vec2(0.f, 1.f), color);
 
 		if (m_Selection1.x <= m_Selection0.x && m_Selection1.y <= m_Selection0.y) {
-			m_SelectionRenderer.AddLine(pixelposSel0 + glm::vec2(1.f, 0.f), { pixelpos.x, pixelposSel0.y }, { 1.f, 0.f, 0.f, 1.f });	// Bottom
-			m_SelectionRenderer.AddLine({ pixelpos.x, pixelposSel0.y }, pixelpos + glm::vec2(0.f, 1.f), { 1.f, 0.f, 0.f, 1.f });		// Left
-			m_SelectionRenderer.AddLine(pixelposSel0 + glm::vec2(1.f, 0.f), { pixelposSel0.x + 1.f, pixelpos.y + 1.f }, { 1.f, 0.f, 0.f, 1.f });	// Right
-			m_SelectionRenderer.AddLine({ pixelposSel0.x + 1.f, pixelpos.y + 1.f }, pixelpos + glm::vec2(0.f, 1.f), { 1.f, 0.f, 0.f, 1.f });		// Top
+			m_SelectionRenderer.AddLine(pixelposSel0 + glm::vec2(1.f, 0.f), { pixelpos.x, pixelposSel0.y }, color);	// Bottom
+			m_SelectionRenderer.AddLine({ pixelpos.x, pixelposSel0.y }, pixelpos + glm::vec2(0.f, 1.f), color);		// Left
+			m_SelectionRenderer.AddLine(pixelposSel0 + glm::vec2(1.f, 0.f), { pixelposSel0.x + 1.f, pixelpos.y + 1.f }, color);	// Right
+			m_SelectionRenderer.AddLine({ pixelposSel0.x + 1.f, pixelpos.y + 1.f }, pixelpos + glm::vec2(0.f, 1.f), color);		// Top
 		}
 		else if (m_Selection1.x > m_Selection0.x && m_Selection1.y <= m_Selection0.y) {
+			m_SelectionRenderer.AddLine(pixelposSel0, { pixelpos.x + 1.f, pixelposSel0.y }, color);	// Bottom
+			m_SelectionRenderer.AddLine(pixelposSel0, { pixelposSel0.x, pixelpos.y + 1.f }, color);		// Left
+			m_SelectionRenderer.AddLine({ pixelpos.x + 1.f, pixelposSel0.y }, pixelpos + glm::vec2(1.f, 1.f), color);	// Right
+			m_SelectionRenderer.AddLine({ pixelposSel0.x, pixelpos.y + 1.f }, pixelpos + glm::vec2(1.f, 1.f), color);		// Top
 		}
 		else if (m_Selection1.x <= m_Selection0.x && m_Selection1.y > m_Selection0.y) {
+			m_SelectionRenderer.AddLine(pixelposSel0 + glm::vec2(1.f, 1.f), { pixelposSel0.x + 1.f, pixelpos.y }, color);	// Right
+			m_SelectionRenderer.AddLine({ pixelposSel0.x + 1.f, pixelpos.y }, pixelpos, color);		// Bottom
+			m_SelectionRenderer.AddLine(pixelposSel0 + glm::vec2(1.f, 1.f), { pixelpos.x, pixelposSel0.y + 1.f }, color);	// Top
+			m_SelectionRenderer.AddLine({ pixelpos.x, pixelposSel0.y + 1.f}, pixelpos, color);		// Left
 		}
 		else if (m_Selection1.x > m_Selection0.x && m_Selection1.y > m_Selection0.y) {
+			m_SelectionRenderer.AddLine(pixelposSel0 + glm::vec2(0, 1.f), { pixelpos.x + 1.f, pixelposSel0.y + 1.f }, color);	// Top
+			m_SelectionRenderer.AddLine({ pixelpos.x + 1.f, pixelposSel0.y + 1.f }, pixelpos + glm::vec2(1.f, 0.f), color);		// Right
+			m_SelectionRenderer.AddLine(pixelposSel0 + glm::vec2(0.f, 1.f), { pixelposSel0.x, pixelpos.y }, color);	// Left
+			m_SelectionRenderer.AddLine({ pixelposSel0.x, pixelpos.y }, pixelpos + glm::vec2(1.f, 0.f), color);		// Left
 		}
 	}
+}
+
+void Mapper::loadStringToCodeBuffer(const std::string& str)
+{
+	std::copy(str.begin(), str.end(), m_CodeBuffer);
+	m_CodeBuffer[str.size()] = '\0'; // Add null terminator
+}
+
+std::string Mapper::generateUVCode()
+{
+	return "This is the multiline code output\nCOde...";
 }
 
 void Mapper::discardImage()
@@ -303,7 +346,7 @@ void Mapper::discardImage()
 	m_ImageRenderer.RemoveAllSprites();
 	m_GridRenderer.vb->Empty();
 
-	m_Zoom = 0.f;
+	m_Zoom = 1.f;
 	m_ViewOffset = { 0.f, 0.f };
 	m_ImageOpen = false;
 }

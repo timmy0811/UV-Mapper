@@ -2,6 +2,7 @@
 
 #include <GLEW/glew.h>
 #include <GLFW/glfw3.h>
+// #include "mapper/helper/Clipboard.h"
 
 #include "nfd.h"
 
@@ -18,6 +19,8 @@
 #define ZOOM_SPEED 0.055f
 #define ZOOM_MAX_IN 20.f
 #define SELECT_PXL_SIZE 1.5f
+
+#define CODE_BUFFER_SIZE 2048
 
 class Mapper
 {
@@ -66,6 +69,8 @@ private:
 
 	glm::vec2 m_DynamicViewBorder = { 1000.f, 1000.f };
 
+	char m_CodeBuffer[CODE_BUFFER_SIZE];
+
 	// Input
 	double m_LastX = 400, m_LastY = 300;
 
@@ -83,6 +88,9 @@ private:
 
 	void drawSelectPixel();
 	void handleSelection(GLFWwindow* window);
+
+	void loadStringToCodeBuffer(const std::string& str);
+	std::string generateUVCode();
 
 public:
 	explicit Mapper();

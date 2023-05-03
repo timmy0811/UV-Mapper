@@ -1426,5 +1426,11 @@
     <ClInclude Include="src\vendor\stb_image\stb_image_write.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="src\mapper\helper\Clipboard.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\windowsWrapper.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
