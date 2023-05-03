@@ -19,6 +19,11 @@ Mapper::Mapper()
 
 	m_FontRenderer.PrintMultilineText("(0.0, 0.0)", { CENTER * BG_TILE_WIDTH + 20.f, CENTER * BG_TILE_WIDTH - FONT_SIZE * 25.f }, FONT_SIZE, { 0.15, 0.15, 0.15, 0.5f });
 	m_Zoom = 1.f;
+
+	m_ComboOptions[0] = "UL";
+	m_ComboOptions[1] = "UR";
+	m_ComboOptions[2] = "LR";
+	m_ComboOptions[3] = "LL";
 }
 
 Mapper::~Mapper()
@@ -151,7 +156,6 @@ void Mapper::OnGuiRender()
 			// ImGui::LabelText("Resets Zoom and Camera Transformations, use it if autozoom failed.", "?");
 		}
 		if (ImGui::CollapsingHeader("Image", ImGuiTreeNodeFlags_DefaultOpen)) {
-
 			m_LastFlippedState = m_Flipped;
 			ImGui::Checkbox("Flip Uvs", &m_Flipped);
 			if (m_Flipped != m_LastFlippedState && m_Flipped) {
@@ -167,16 +171,55 @@ void Mapper::OnGuiRender()
 		}
 
 		if (ImGui::CollapsingHeader("Code Generation", ImGuiTreeNodeFlags_DefaultOpen)) {
+			const glm::vec2 sel0 = { std::min(m_Selection0.x, m_Selection1.x), std::max(m_Selection0.y + 1.f, m_Selection1.y + 1.f) };	// upper left
+			const glm::vec2 sel1 = { std::max(m_Selection0.x + 1.f, m_Selection1.x + 1.f), std::min(m_Selection0.y, m_Selection1.y) };	// lower right
+
+			bool valid = m_ImageSize.x > 0.f && m_ImageSize.y > 0.f;
+
+			float v[4][2] = { { valid ? sel0.x / m_ImageSize.x : 0.f, valid ? sel0.y / m_ImageSize.y : 0.f },
+				{ valid ? sel1.x / m_ImageSize.x : 0.f, valid ? sel0.y / m_ImageSize.y : 0.f },
+				{ valid ? sel1.x / m_ImageSize.x : 0.f, valid ? sel1.y / m_ImageSize.y : 0.f },
+				{ valid ? sel0.x / m_ImageSize.x : 0.f, valid ? sel1.y / m_ImageSize.y : 0.f } };
+
+			static int i = 10;
+			ImGui::InputInt("Digits after comma:", &i);
+			i = std::max(std::min(i, 18), 0);
+			std::string precision = "%." + std::to_string(i) + "f";
+
+			ImGui::Separator();
+
+			ImGui::InputFloat2("UV-0", v[m_SelCombo[0]], precision.c_str());
+			ImGui::SameLine(0.f, 15.f);
+			ImGui::SetNextItemWidth(70.f);
+			ImGui::Combo("Or.0", m_SelCombo, m_ComboOptions, IM_ARRAYSIZE(m_ComboOptions));
+
+			ImGui::InputFloat2("UV-1", v[m_SelCombo[1]], precision.c_str());
+			ImGui::SameLine(0.f, 15.f);
+			ImGui::SetNextItemWidth(70.f);
+			ImGui::Combo("Or.1", m_SelCombo + 1, m_ComboOptions, IM_ARRAYSIZE(m_ComboOptions));
+
+			ImGui::InputFloat2("UV-2", v[m_SelCombo[2]], precision.c_str());
+			ImGui::SameLine(0.f, 15.f);
+			ImGui::SetNextItemWidth(70.f);
+			ImGui::Combo("Or.2", m_SelCombo + 2, m_ComboOptions, IM_ARRAYSIZE(m_ComboOptions));
+
+			ImGui::InputFloat2("UV-3", v[m_SelCombo[3]], precision.c_str());
+			ImGui::SameLine(0.f, 15.f);
+			ImGui::SetNextItemWidth(70.f);
+			ImGui::Combo("Or.3", m_SelCombo + 3, m_ComboOptions, IM_ARRAYSIZE(m_ComboOptions));
+
+			ImGui::Separator();
 			ImGui::Text("Here comes the configuration panel for code generation");
 			ImGui::Separator();
 			std::string codeGenerated = generateUVCode();
 			size_t size = codeGenerated.size();
 			loadStringToCodeBuffer(codeGenerated);
-			ImGui::InputTextMultiline(" ", m_CodeBuffer, size, ImVec2((float)conf.WIN_WIDTH / 3.5f - 20.f, 0.f), ImGuiInputTextFlags_ReadOnly);
 
-			if (ImGui::Button("Copy to Clipboard")) {
-				//copyToClipboard(m_CodeBuffer, size);
+			ImGui::InputTextMultiline(" ", m_CodeBuffer, size, ImVec2((float)conf.WIN_WIDTH / 3.5f - 20.f, 0.f), ImGuiInputTextFlags_ReadOnly);
+			if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+				ImGui::SetClipboardText(m_CodeBuffer);
 			}
+			ImGui::Text("Right click Code to copy");
 		}
 
 		if (ImGui::CollapsingHeader("Reload and Discard", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -268,6 +311,8 @@ void Mapper::drawSelectPixel()
 
 void Mapper::handleSelection(GLFWwindow* window)
 {
+	if (!isCursorOnImage()) return;
+
 	glm::vec2 pixelpos = { CENTER * BG_TILE_WIDTH + m_CurrentPixel.x, (CENTER * BG_TILE_WIDTH + m_ImageSize.y - m_CurrentPixel.y) - 1.f };
 	constexpr glm::vec4 color = { 1.f, 0.f, 0.f, 1.f };
 
@@ -319,7 +364,7 @@ void Mapper::handleSelection(GLFWwindow* window)
 			m_SelectionRenderer.AddLine(pixelposSel0 + glm::vec2(1.f, 1.f), { pixelposSel0.x + 1.f, pixelpos.y }, color);	// Right
 			m_SelectionRenderer.AddLine({ pixelposSel0.x + 1.f, pixelpos.y }, pixelpos, color);		// Bottom
 			m_SelectionRenderer.AddLine(pixelposSel0 + glm::vec2(1.f, 1.f), { pixelpos.x, pixelposSel0.y + 1.f }, color);	// Top
-			m_SelectionRenderer.AddLine({ pixelpos.x, pixelposSel0.y + 1.f}, pixelpos, color);		// Left
+			m_SelectionRenderer.AddLine({ pixelpos.x, pixelposSel0.y + 1.f }, pixelpos, color);		// Left
 		}
 		else if (m_Selection1.x > m_Selection0.x && m_Selection1.y > m_Selection0.y) {
 			m_SelectionRenderer.AddLine(pixelposSel0 + glm::vec2(0, 1.f), { pixelpos.x + 1.f, pixelposSel0.y + 1.f }, color);	// Top
@@ -339,6 +384,11 @@ void Mapper::loadStringToCodeBuffer(const std::string& str)
 std::string Mapper::generateUVCode()
 {
 	return "This is the multiline code output\nCOde...";
+}
+
+bool Mapper::isCursorOnImage() const
+{
+	return m_CurrentPixel.x >= 0 && m_CurrentPixel.x < m_ImageSize.x&& m_CurrentPixel.y >= 0 && m_CurrentPixel.y < m_ImageSize.y;
 }
 
 void Mapper::discardImage()

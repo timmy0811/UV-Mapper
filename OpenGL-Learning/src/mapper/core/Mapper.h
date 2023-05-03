@@ -62,6 +62,9 @@ private:
 
 	glm::vec2 m_CurrentPixel;
 
+	const char* m_ComboOptions[4];
+	int m_SelCombo[4] = { 0, 1, 2, 3 };
+
 	// View
 	glm::vec2 m_ViewOffset;
 	glm::mat4 m_Projection;
@@ -91,6 +94,8 @@ private:
 
 	void loadStringToCodeBuffer(const std::string& str);
 	std::string generateUVCode();
+
+	bool isCursorOnImage() const;
 
 public:
 	explicit Mapper();

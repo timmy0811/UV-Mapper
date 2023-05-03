@@ -89,4 +89,18 @@ namespace Helper {
 
 		return r | g | b;
 	}
+
+	struct UVlabels {
+		char uv0X[10];
+		char uv0Y[10];
+
+		char uv1X[10];
+		char uv1Y[10];
+
+		char uv2X[10];
+		char uv2Y[10];
+
+		char uv3X[10];
+		char uv3Y[10];
+	};
 }
