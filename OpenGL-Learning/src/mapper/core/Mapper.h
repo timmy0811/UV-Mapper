@@ -4,6 +4,8 @@
 #include <GLFW/glfw3.h>
 // #include "mapper/helper/Clipboard.h"
 
+#include <format>
+
 #include "nfd.h"
 
 #include "imgui/imgui.h"
@@ -93,7 +95,7 @@ private:
 	void handleSelection(GLFWwindow* window);
 
 	void loadStringToCodeBuffer(const std::string& str);
-	std::string generateUVCode();
+	std::string generateUVCode(float* v);
 
 	bool isCursorOnImage() const;
 
