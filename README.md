@@ -11,5 +11,7 @@ This application allows you to select areas of images and generate UV-cordinates
 * Automatic code generation
 
 ## Screenshots
+### Selecting Regions
 ![](https://github.com/timmy0811/UV-Mapper/blob/main/img2.png?raw=true)
+### Loading Images
 ![](https://github.com/timmy0811/UV-Mapper/blob/main/img0.png?raw=true)
